@@ -1,10 +1,109 @@
-# BolAitor - Galería 3D Esférica Interactiva
+# BolAitor 3D Globe
 
 Una aplicación web de galería esférica en 3D interactiva construida con **React 19**, **Three.js** (`@react-three/fiber`), **Tailwind CSS v4** y **Vite**.
 
 Permite explorar 48 destinos icónicos del mundo en un globo esférico con rotación libre, inercia de arrastre, penetración de zoom al interior de la esfera y fichas informativas detalladas con locución por voz y detalles históricos.
 
-> **100% Client-Side / Estática:** Esta versión es totalmente independiente de APIs externas o servicios de backend (prescinde al 100% de la API de Gemini). No requiere claves de API, secretos ni bases de datos. Es ideal para desplegar directamente en **Cloudflare Pages**, **GitHub Pages**, **Vercel** o cualquier CDN estático.
+### Tus propias fotos en el globo
+
+Desde el menú principal, cualquier usuario puede sustituir las fotos de destinos por sus propias imágenes:
+
+- **Archivos individuales**: selecciona una o varias imágenes (JPG, PNG, WEBP, GIF) desde el selector de archivos.
+- **Archivo ZIP**: sube un `.zip` que contenga imágenes y la app las extrae automáticamente en el navegador (usando `JSZip`, sin subir nada a un servidor).
+
+Estas fotos se cargan como texturas de las tarjetas del globo. Todo ocurre en el propio navegador (client-side).
+
+### Hoja de ruta
+
+- **Registro / inicio de sesión de usuarios**: ✅ implementado, centralizado con **[Clerk](https://clerk.com)** (registro, login con Google, gestión de sesión — plan gratuito de Clerk incluido, ver más abajo).
+- **Almacenamiento en Google Drive**: ✅ implementado. Las fotos que subes (imágenes sueltas o extraídas de un ZIP) se guardan en una carpeta llamada **"BolAitor 3D Globe"** dentro de tu propio Google Drive, y se recuperan automáticamente la próxima vez que inicies sesión.
+
+---
+
+## 🔑 Configurar Clerk (login) + Google Drive
+
+Esta función es **opcional**: si no configuras nada, la app sigue funcionando igual (destinos curados, subir fotos sueltas o un ZIP), solo que esas fotos quedan únicamente en el navegador del usuario en esa sesión (no se guardan al recargar la página).
+
+### Arquitectura
+
+- **Clerk** centraliza todo el ciclo de usuario: pantallas de registro/login (email+contraseña, "Continuar con Google", etc.), sesión y gestión de cuenta — sin que tengas que programar nada de eso.
+- Para guardar fotos en el **Drive** del usuario, la app necesita un *token de acceso de Google* con el scope `drive.file`. Clerk puede obtenerlo (si configuras tu propio Google OAuth Client dentro de Clerk con ese scope), pero solo lo expone de forma segura desde su **Backend API** (con tu Clerk Secret Key) — nunca directamente al navegador.
+- Por eso la app incluye **una función serverless** en `functions/api/google-token.ts`, pensada para **Cloudflare Pages Functions** (se despliega automáticamente junto al resto de la app, sin servidor que mantener). Esa función verifica la sesión de Clerk del usuario y le pide a Clerk el token de Google, devolviéndolo al navegador para que este llame directamente a la API de Drive.
+- El **scope `drive.file`** es no sensible: la app solo puede ver/gestionar los archivos que ella misma crea en Drive, nunca el resto del Drive del usuario.
+
+### Paso 1: Crear las credenciales OAuth de Google (igual que antes)
+
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/) y crea un proyecto (o usa uno existente).
+2. **APIs y servicios > Biblioteca** → busca **Google Drive API** → **Habilitar**.
+3. **APIs y servicios > Pantalla de consentimiento de OAuth**:
+   - Tipo de usuario: **Externo**.
+   - Rellena nombre de la app, correo de soporte, etc.
+   - Mientras esté en modo **Prueba (Testing)**, añade como usuarios de prueba los correos con los que quieras probar el login.
+4. **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
+   - Tipo de aplicación: **Aplicación web**.
+   - **Orígenes de JavaScript autorizados**: añade `http://localhost:5173` y tu dominio de producción (p. ej. `https://tu-dominio.pages.dev`).
+   - **URI de redirección autorizados**: añade la URL de callback OAuth de Clerk, que encontrarás en el propio Dashboard de Clerk al configurar la conexión de Google (paso 3) — normalmente algo como `https://<tu-instancia>.clerk.accounts.dev/v1/oauth_callback`.
+5. Copia el **Client ID** y el **Client Secret** generados.
+
+### Paso 2: Crear la app en Clerk
+
+1. Crea una cuenta gratuita en [clerk.com](https://clerk.com) y un nuevo proyecto/aplicación (p. ej. "BolAitor 3D Globe").
+2. En **User & Authentication > Social Connections**, activa **Google**.
+3. Elige **"Use custom credentials"** (imprescindible para poder pedir el scope de Drive — las credenciales compartidas de Clerk no lo permiten) y pega el **Client ID** y **Client Secret** de Google del paso anterior.
+4. En **Scopes**, añade `https://www.googleapis.com/auth/drive.file` a los scopes solicitados por la conexión de Google.
+5. En **API Keys**, copia la **Publishable key** (`pk_...`) y la **Secret key** (`sk_...`).
+
+### Paso 3: Configurar las variables de entorno
+
+**Frontend** — copia `.env.example` a `.env` (o `.env.local`):
+
+```bash
+VITE_CLERK_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+**Función serverless** (solo para desarrollo local) — copia `.dev.vars.example` a `.dev.vars`:
+
+```bash
+CLERK_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+VITE_CLERK_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+`.env` y `.dev.vars` están en `.gitignore`: nunca los subas al repositorio.
+
+En **Cloudflare Pages** (producción), ve a **Settings > Environment variables** del proyecto y añade:
+- `VITE_CLERK_PUBLISHABLE_KEY` → pública, se puede marcar como variable normal.
+- `CLERK_SECRET_KEY` → márcala como **secreta** (encrypted). Solo la usa la función `functions/api/google-token.ts`, nunca llega al navegador.
+
+Si tu build de Cloudflare Pages usa `nodejs_compat` (recomendado para `@clerk/backend`), actívalo en **Settings > Functions > Compatibility flags** añadiendo `nodejs_compat`.
+
+### Paso 4: Probar en local
+
+```bash
+npm install
+npm run dev:functions   # hace build + sirve todo (frontend y /api/*) con wrangler
+```
+
+`npm run dev` (solo Vite) sirve el frontend, pero **no** ejecuta las funciones de `/functions` — para probar el login+Drive de extremo a extremo necesitas `npm run dev:functions`, que usa `wrangler pages dev` y lee los secretos de `.dev.vars`.
+
+1. Abre la app, pulsa **"Iniciar sesión / Crear cuenta"** → se abre el modal de Clerk → elige "Continuar con Google".
+2. Ve a **"Añadir mis fotos al globo"**: verás "Se guardan en tu Google Drive (tu-correo@gmail.com)".
+3. Sube fotos (individuales o ZIP) y compruébalas en la carpeta **"BolAitor 3D Globe"** de tu Drive.
+4. Cierra sesión y vuelve a entrar: tus fotos se recuperan automáticamente.
+
+> Si el usuario se registró antes de activar el scope de Drive, o inició sesión con email/contraseña sin conectar Google, la app muestra un botón **"Conectar cuenta de Google" / "Conceder acceso a Google Drive"** para completarlo en cualquier momento.
+
+> Si `VITE_CLERK_PUBLISHABLE_KEY` no está definida, todos los botones de login aparecen deshabilitados ("Login no configurado") y el resto de la app funciona con normalidad.
+
+### Publicar fuera de "modo prueba" (opcional)
+
+Mientras la pantalla de consentimiento de Google esté en modo **Testing**, solo los usuarios de prueba añadidos podrán conectar Google. Para permitir cualquier usuario, **publica** la app en la pantalla de consentimiento OAuth de Google. Como solo pides el scope no sensible `drive.file` (además de `email`/`profile`), no debería requerir la revisión de seguridad exhaustiva que sí exigen los scopes "sensibles" o "restringidos".
+
+### Plan gratuito de Clerk
+
+El plan gratuito de Clerk (Hobby) incluye un número de usuarios mensuales activos más que suficiente para un proyecto personal o una demo, sin necesidad de tarjeta de crédito. Revisa [clerk.com/pricing](https://clerk.com/pricing) para los límites exactos y vigentes.
+
+
+> **Frontend estático + 1 función serverless opcional:** El globo, la carga de fotos (ZIP/imágenes) y toda la interfaz funcionan como una app 100% estática, sin backend. El login (Clerk) y el guardado en Google Drive son opcionales y añaden una única función serverless (`functions/api/google-token.ts`), pensada para desplegarse gratis junto al resto de la app en **Cloudflare Pages Functions** — no hace falta un servidor propio. Sin esa configuración, la app sigue funcionando igual (destinos curados + fotos locales).
 
 ---
 
@@ -20,8 +119,9 @@ Permite explorar 48 destinos icónicos del mundo en un globo esférico con rotac
    - **Framework preset:** `Vite`
    - **Build command:** `npm run build`
    - **Build output directory:** `dist`
-   - **Root directory:** `/` (o dejar en blanco)
-   - **Environment variables (opcional):** `NODE_VERSION` = `20`
+   - **Root directory:** `/` (o dejar en blanco) — importante: deja la carpeta `functions/` en la raíz del repo (fuera de `dist`), Cloudflare Pages la detecta y despliega automáticamente como funciones serverless.
+   - **Environment variables:** `NODE_VERSION` = `20`, y si usas login/Drive, añade también `VITE_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY` (esta última como **secreta**) — ver la sección "🔑 Configurar Clerk" más arriba.
+   - Si usas login/Drive, activa el compatibility flag `nodejs_compat` en **Settings > Functions > Compatibility flags** (necesario para `@clerk/backend`).
 6. Haz clic en **Save and Deploy**. En pocos segundos tu aplicación estará activa globalmente en la red de Cloudflare con HTTPS automático y dominio `*.pages.dev`.
 
 ### Método 2: Despliegue Directo con Wrangler CLI
@@ -34,7 +134,16 @@ npm install
 npm run build
 
 # 2. Desplegar la carpeta dist en Cloudflare Pages
-npx wrangler pages deploy dist --project-name bolaitor-globe
+# (ejecuta esto desde la raíz del proyecto: wrangler detecta la carpeta
+# functions/ que está junto a dist/ y la despliega también)
+npx wrangler pages deploy dist --project-name bolaitor-3d-globe
+```
+
+Si usas login/Drive, configura los secretos de producción una vez con:
+
+```bash
+npx wrangler pages secret put CLERK_SECRET_KEY --project-name bolaitor-3d-globe
+npx wrangler pages secret put VITE_CLERK_PUBLISHABLE_KEY --project-name bolaitor-3d-globe
 ```
 
 ---
@@ -71,14 +180,21 @@ git push -u origin main
 # 1. Instalar dependencias
 npm install
 
-# 2. Iniciar el servidor de desarrollo local
+# 2. Iniciar el servidor de desarrollo local (solo frontend)
 npm run dev
+
+# 2b. Alternativa: frontend + funciones serverless (login/Drive) con Wrangler
+npm run dev:functions
 
 # 3. Compilar para producción (genera la carpeta dist/)
 npm run build
 
 # 4. Probar la compilación en local
 npm run preview
+
+# 5. Type-check (frontend y, por separado, las funciones)
+npm run lint
+npm run lint:functions
 ```
 
 ---
@@ -92,3 +208,7 @@ npm run preview
 - **Motion** (Animaciones fluidas y transiciones de interfaz)
 - **Lucide React** (Iconografía limpia y moderna)
 - **Web Speech API** (Locución accesible de información turística en navegador)
+- **JSZip** (extracción de imágenes desde archivos ZIP en el navegador)
+- **Clerk** (`@clerk/clerk-react`, `@clerk/backend`) — registro, login (con Google) y gestión de sesión
+- **Cloudflare Pages Functions** (`functions/api/google-token.ts`) — única pieza serverless, para obtener el token de Google Drive del usuario de forma segura
+- **Google Drive API v3** (REST, llamada directamente desde el navegador con el token obtenido)

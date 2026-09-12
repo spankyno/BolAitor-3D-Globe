@@ -1,6 +1,6 @@
 {
-  "name": "BolAitor",
-  "description": "An interactive 3D spherical gallery of images using WebGL. Features free drag-to-rotate interaction, momentum scrolling, and deep zoom camera penetration inside the sphere.",
+  "name": "BolAitor 3D Globe",
+  "description": "Galería esférica interactiva en 3D. Permite subir fotos propias (imágenes individuales o un ZIP) para explorarlas en un globo en WebGL, con arrastre libre, inercia y zoom de penetración.",
   "requestFramePermissions": [
     "camera"
   ],
