@@ -4,19 +4,21 @@ Una aplicación web de galería esférica en 3D interactiva construida con **Rea
 
 Permite explorar 48 destinos icónicos del mundo en un globo esférico con rotación libre, inercia de arrastre, penetración de zoom al interior de la esfera y fichas informativas detalladas con locución por voz y detalles históricos.
 
-### Tus propias fotos en el globo
+### Tus propias fotos en el globo: "Mis globos"
 
-Desde el menú principal, cualquier usuario puede sustituir las fotos de destinos por sus propias imágenes:
+Desde el menú principal, cualquier usuario puede crear varios **globos con nombre** (p. ej. "Japón 2025", "Boda de Ana") y llenar cada uno con sus propias imágenes:
 
 - **Archivos individuales**: selecciona una o varias imágenes (JPG, PNG, WEBP, GIF) desde el selector de archivos.
 - **Archivo ZIP**: sube un `.zip` que contenga imágenes y la app las extrae automáticamente en el navegador (usando `JSZip`, sin subir nada a un servidor).
 
-Estas fotos se cargan como texturas de las tarjetas del globo. Todo ocurre en el propio navegador (client-side).
+Cada globo se puede renombrar o eliminar por separado. Sin iniciar sesión, los globos creados solo viven en la memoria del navegador durante esa sesión; iniciando sesión con Google (ver sección siguiente), cada globo se guarda como una **subcarpeta** dentro de tu carpeta de Drive "BolAitor 3D Globe", y se recupera automáticamente la próxima vez que entres.
+
+Las fotos se cargan como texturas de las tarjetas del globo 3D correspondiente.
 
 ### Hoja de ruta
 
 - **Registro / inicio de sesión de usuarios**: ✅ implementado, centralizado con **[Clerk](https://clerk.com)** (registro, login con Google, gestión de sesión — plan gratuito de Clerk incluido, ver más abajo).
-- **Almacenamiento en Google Drive**: ✅ implementado. Las fotos que subes (imágenes sueltas o extraídas de un ZIP) se guardan en una carpeta llamada **"BolAitor 3D Globe"** dentro de tu propio Google Drive, y se recuperan automáticamente la próxima vez que inicies sesión.
+- **Almacenamiento en Google Drive**: ✅ implementado. Cada globo (colección con nombre) se guarda en su propia subcarpeta dentro de **"BolAitor 3D Globe"** en tu Google Drive, y se recupera automáticamente la próxima vez que inicies sesión.
 
 ---
 
@@ -86,7 +88,7 @@ npm run dev:functions   # hace build + sirve todo (frontend y /api/*) con wrangl
 `npm run dev` (solo Vite) sirve el frontend, pero **no** ejecuta las funciones de `/functions` — para probar el login+Drive de extremo a extremo necesitas `npm run dev:functions`, que usa `wrangler pages dev` y lee los secretos de `.dev.vars`.
 
 1. Abre la app, pulsa **"Iniciar sesión / Crear cuenta"** → se abre el modal de Clerk → elige "Continuar con Google".
-2. Ve a **"Añadir mis fotos al globo"**: verás "Se guardan en tu Google Drive (tu-correo@gmail.com)".
+2. Ve a **"Mis globos"**, crea uno nuevo y ábrelo: verás "Se guardan en tu Google Drive (tu-correo@gmail.com)".
 3. Sube fotos (individuales o ZIP) y compruébalas en la carpeta **"BolAitor 3D Globe"** de tu Drive.
 4. Cierra sesión y vuelve a entrar: tus fotos se recuperan automáticamente.
 

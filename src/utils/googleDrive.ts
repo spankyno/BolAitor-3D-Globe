@@ -111,3 +111,72 @@ export async function listDrivePhotos(accessToken: string, folderId: string): Pr
 export async function deleteDrivePhoto(accessToken: string, fileId: string): Promise<void> {
   await driveFetch(accessToken, `${DRIVE_FILES_API}/${fileId}`, { method: 'DELETE' });
 }
+
+// --- Collections ("globos" con nombre) ---
+// Each collection is just a subfolder inside the app's root Drive folder.
+
+export interface DriveCollection {
+  id: string;
+  name: string;
+}
+
+/**
+ * Lists the user's named collections (subfolders of the app's root folder).
+ */
+export async function listCollections(accessToken: string, rootFolderId: string): Promise<DriveCollection[]> {
+  const q = encodeURIComponent(
+    `'${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+  );
+  const res = await driveFetch(
+    accessToken,
+    `${DRIVE_FILES_API}?q=${q}&fields=files(id,name)&orderBy=name&spaces=drive&pageSize=200`
+  );
+  const data = await res.json();
+  return (data.files || []) as DriveCollection[];
+}
+
+export async function createCollection(
+  accessToken: string,
+  rootFolderId: string,
+  name: string
+): Promise<DriveCollection> {
+  const res = await driveFetch(accessToken, DRIVE_FILES_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [rootFolderId],
+    }),
+  });
+  const data = await res.json();
+  return { id: data.id, name: data.name };
+}
+
+export async function renameCollection(accessToken: string, folderId: string, newName: string): Promise<void> {
+  await driveFetch(accessToken, `${DRIVE_FILES_API}/${folderId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName }),
+  });
+}
+
+/**
+ * Deletes a collection folder (and every photo inside it — Drive moves the
+ * whole folder to the trash).
+ */
+export async function deleteCollectionFolder(accessToken: string, folderId: string): Promise<void> {
+  await driveFetch(accessToken, `${DRIVE_FILES_API}/${folderId}`, { method: 'DELETE' });
+}
+
+/**
+ * Counts the images directly inside a folder, without downloading them —
+ * used to show a photo count on each collection card before it's opened.
+ */
+export async function countPhotosInFolder(accessToken: string, folderId: string): Promise<number> {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType contains 'image/'`);
+  const res = await driveFetch(accessToken, `${DRIVE_FILES_API}?q=${q}&fields=files(id)&spaces=drive&pageSize=1000`);
+  const data = await res.json();
+  return ((data.files || []) as unknown[]).length;
+}
+
