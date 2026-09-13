@@ -4,12 +4,24 @@ import GalleryGlobe from './components/GalleryGlobe';
 import IntroScreen from './components/IntroScreen';
 import LocationDetailsScreen from './components/LocationDetailsScreen';
 import LoadingOverlay from './components/LoadingOverlay';
+import SharedGlobeViewer from './components/SharedGlobeViewer';
+
+const SHARE_PATH_MATCH = typeof window !== 'undefined' ? window.location.pathname.match(/^\/share\/([A-Za-z0-9_-]+)\/?$/) : null;
 
 export default function App() {
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [customPhotos, setCustomPhotos] = useState<string[] | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
   const [isLoadingGlobe, setIsLoadingGlobe] = useState(false);
+
+  // Public, read-only shared globe: /share/<token> — no login, no menu.
+  if (SHARE_PATH_MATCH) {
+    return (
+      <div className="w-full h-full relative bg-white overflow-hidden select-none">
+        <SharedGlobeViewer token={SHARE_PATH_MATCH[1]} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full relative bg-white overflow-hidden select-none">

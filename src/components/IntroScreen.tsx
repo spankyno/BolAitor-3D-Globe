@@ -15,6 +15,7 @@ import {
 import { useDriveAuth } from '../context/DriveAuthContext';
 import { AccountPill, ConnectDriveButton, SignInPrompt } from './ClerkAuth';
 import CollectionsScreen from './CollectionsScreen';
+import ShareControl from './ShareControl';
 import { makeLocalCollectionId, type Collection } from '../types/collection';
 
 interface IntroScreenProps {
@@ -648,6 +649,10 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               Ver este globo
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            <div className="w-full border-t border-gray-100 pt-3 mt-1">
+              <ShareControl folderId={activeCollection.driveFolderId} isSignedIn={isSignedIn} />
+            </div>
 
             {!isSignedIn && driveConfigured && <SignInPrompt variant="inline" />}
           </div>

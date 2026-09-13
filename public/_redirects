@@ -1,0 +1,5 @@
+# Single-page app fallback: any path not matched by a Pages Function or a
+# real static asset gets served index.html, so client-side-only routes like
+# /share/:token work on a hard refresh / direct link, not just via in-app
+# navigation.
+/*    /index.html   200

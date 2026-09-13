@@ -1,17 +1,8 @@
 import type { PagesFunction } from '@cloudflare/workers-types';
-import { createClerkClient } from '@clerk/backend';
+import { getGoogleAccessTokenForUser, getSignedInUserId, makeClerkClient, type ClerkEnv } from '../_lib/clerkGoogleToken';
+import { json } from '../_lib/http';
 
-interface Env {
-  CLERK_SECRET_KEY: string;
-  VITE_CLERK_PUBLISHABLE_KEY: string;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+type Env = ClerkEnv;
 
 /**
  * GET /api/google-token
@@ -33,19 +24,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return json({ error: 'Clerk no está configurado en el servidor (faltan CLERK_SECRET_KEY / VITE_CLERK_PUBLISHABLE_KEY).' }, 500);
   }
 
-  const clerkClient = createClerkClient({
-    secretKey: env.CLERK_SECRET_KEY,
-    publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
-  });
+  const clerkClient = makeClerkClient(env);
 
   let userId: string | null = null;
   try {
-    const requestState = await clerkClient.authenticateRequest(request, {
-      authorizedParties: [new URL(request.url).origin],
-    });
-    if (requestState.isAuthenticated) {
-      userId = requestState.toAuth().userId;
-    }
+    userId = await getSignedInUserId(clerkClient, request);
   } catch (err) {
     console.error('Error verificando la sesión de Clerk', err);
     return json({ error: 'No se pudo verificar la sesión.' }, 401);
@@ -56,17 +39,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { data: tokens } = await clerkClient.users.getUserOauthAccessToken(userId, 'google');
-    const tokenData = tokens?.[0];
-    if (!tokenData?.token) {
-      return json(
-        { error: 'Tu cuenta no tiene Google conectado con acceso a Drive. Conéctala desde el menú de la app.' },
-        404
-      );
-    }
-    return json({ accessToken: tokenData.token });
+    const accessToken = await getGoogleAccessTokenForUser(clerkClient, userId);
+    return json({ accessToken });
   } catch (err) {
     console.error('Error obteniendo el token de Google desde Clerk', err);
-    return json({ error: 'No se pudo obtener el token de Google Drive.' }, 500);
+    return json(
+      { error: 'Tu cuenta no tiene Google conectado con acceso a Drive. Conéctala desde el menú de la app.' },
+      404
+    );
   }
 };

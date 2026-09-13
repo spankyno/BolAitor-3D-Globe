@@ -19,6 +19,7 @@ Las fotos se cargan como texturas de las tarjetas del globo 3D correspondiente.
 
 - **Registro / inicio de sesión de usuarios**: ✅ implementado, centralizado con **[Clerk](https://clerk.com)** (registro, login con Google, gestión de sesión — plan gratuito de Clerk incluido, ver más abajo).
 - **Almacenamiento en Google Drive**: ✅ implementado. Cada globo (colección con nombre) se guarda en su propia subcarpeta dentro de **"BolAitor 3D Globe"** en tu Google Drive, y se recupera automáticamente la próxima vez que inicies sesión.
+- **Compartir un globo con enlace público**: ✅ implementado. Cualquier globo guardado en Drive se puede compartir con un enlace de solo lectura (`/share/<token>`) que cualquiera puede abrir sin iniciar sesión — ver la sección "🔗 Compartir un globo" más abajo.
 
 ---
 
@@ -104,8 +105,53 @@ Mientras la pantalla de consentimiento de Google esté en modo **Testing**, solo
 
 El plan gratuito de Clerk (Hobby) incluye un número de usuarios mensuales activos más que suficiente para un proyecto personal o una demo, sin necesidad de tarjeta de crédito. Revisa [clerk.com/pricing](https://clerk.com/pricing) para los límites exactos y vigentes.
 
+---
 
-> **Frontend estático + 1 función serverless opcional:** El globo, la carga de fotos (ZIP/imágenes) y toda la interfaz funcionan como una app 100% estática, sin backend. El login (Clerk) y el guardado en Google Drive son opcionales y añaden una única función serverless (`functions/api/google-token.ts`), pensada para desplegarse gratis junto al resto de la app en **Cloudflare Pages Functions** — no hace falta un servidor propio. Sin esa configuración, la app sigue funcionando igual (destinos curados + fotos locales).
+## 🔗 Compartir un globo (enlace público de solo lectura)
+
+Cualquier globo guardado en Drive se puede compartir con un enlace del tipo `https://tu-dominio.pages.dev/share/AbC123...`. Quien lo abra ve el globo 3D y puede explorarlo (arrastrar, hacer zoom, hacer clic en las fotos) **sin iniciar sesión ni necesitar cuenta de Google**.
+
+### Cómo funciona (sin tocar los permisos de tus archivos en Drive)
+
+En vez de hacer públicos los archivos en Google Drive, el enlace apunta a **dos funciones serverless nuevas** que hacen de proxy:
+
+- `functions/api/share/[token]/meta.ts` — dado el token del enlace, busca a qué usuario y carpeta de Drive corresponde, pide el token de Google de **ese usuario** (el propietario, no el visitante) a través de Clerk, y devuelve el nombre del globo y la lista de fotos.
+- `functions/api/share/[token]/photo/[fileId].ts` — sirve el contenido de una foto concreta, comprobando primero que esa foto pertenece de verdad a la carpeta compartida.
+
+Es decir: **tus archivos de Drive siguen siendo privados** en todo momento; el visitante nunca recibe un token de Google ni accede a Drive directamente, todo pasa por tu propia función serverless.
+
+Para resolver el token del enlace sin que el propietario esté conectado en ese momento, la app usa **Cloudflare Workers KV** (un almacén clave-valor) para guardar la relación `token → (usuario, carpeta)`. Es la única pieza de infraestructura nueva que hace falta:
+
+- `functions/api/share/create.ts` — crea (o reutiliza) el enlace de un globo.
+- `functions/api/share/status.ts` — comprueba si un globo ya está compartido.
+- `functions/api/share/revoke.ts` — desactiva el enlace (deja de funcionar al instante).
+
+### Configurar el KV namespace
+
+**Desarrollo local**: no requiere ningún paso extra — `npm run dev:functions` ya arranca Wrangler con un KV local de pruebas (`--kv SHARE_KV`), que se guarda en `.wrangler/` y se puede borrar sin problema.
+
+**Producción (Cloudflare Pages)**:
+
+1. Crea el namespace una vez desde tu terminal:
+   ```bash
+   npx wrangler kv namespace create SHARE_KV
+   ```
+   Esto imprime un `id` — apúntalo.
+2. En el dashboard de Cloudflare Pages, ve a tu proyecto → **Settings > Functions > KV namespace bindings** → **Add binding**:
+   - **Variable name:** `SHARE_KV`
+   - **KV namespace:** el que acabas de crear.
+3. Guarda. La próxima vez que despliegues (git push o `wrangler pages deploy`), la función ya tendrá acceso a `env.SHARE_KV`.
+
+Sin este binding configurado, los botones de "Compartir" mostrarán un error explicando que el KV no está configurado, pero el resto de la app (login, Drive, "Mis globos") sigue funcionando con normalidad.
+
+### Usarlo desde la app
+
+1. Abre un globo desde **"Mis globos"** (tiene que estar guardado en Drive, es decir, con la sesión iniciada).
+2. Al final de la pantalla, pulsa **"Compartir este globo"**.
+3. Copia el enlace generado con el botón de copiar. Pulsa **"Dejar de compartir"** en cualquier momento para desactivarlo (el enlace deja de funcionar al instante, aunque alguien lo tenga guardado).
+
+
+> **Frontend estático + funciones serverless opcionales:** El globo, la carga de fotos (ZIP/imágenes) y toda la interfaz funcionan como una app 100% estática, sin backend. El login (Clerk), el guardado en Google Drive y el enlace de compartir público son opcionales y añaden un puñado de funciones serverless bajo `functions/api/`, pensadas para desplegarse gratis junto al resto de la app en **Cloudflare Pages Functions** — no hace falta un servidor propio. Sin esa configuración, la app sigue funcionando igual (destinos curados + fotos locales).
 
 ---
 
@@ -124,6 +170,7 @@ El plan gratuito de Clerk (Hobby) incluye un número de usuarios mensuales activ
    - **Root directory:** `/` (o dejar en blanco) — importante: deja la carpeta `functions/` en la raíz del repo (fuera de `dist`), Cloudflare Pages la detecta y despliega automáticamente como funciones serverless.
    - **Environment variables:** `NODE_VERSION` = `20`, y si usas login/Drive, añade también `VITE_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY` (esta última como **secreta**) — ver la sección "🔑 Configurar Clerk" más arriba.
    - Si usas login/Drive, activa el compatibility flag `nodejs_compat` en **Settings > Functions > Compatibility flags** (necesario para `@clerk/backend`).
+   - Si usas la función de compartir, añade el binding de KV `SHARE_KV` en **Settings > Functions > KV namespace bindings** — ver la sección "🔗 Compartir un globo" más arriba.
 6. Haz clic en **Save and Deploy**. En pocos segundos tu aplicación estará activa globalmente en la red de Cloudflare con HTTPS automático y dominio `*.pages.dev`.
 
 ### Método 2: Despliegue Directo con Wrangler CLI
@@ -212,5 +259,6 @@ npm run lint:functions
 - **Web Speech API** (Locución accesible de información turística en navegador)
 - **JSZip** (extracción de imágenes desde archivos ZIP en el navegador)
 - **Clerk** (`@clerk/clerk-react`, `@clerk/backend`) — registro, login (con Google) y gestión de sesión
-- **Cloudflare Pages Functions** (`functions/api/google-token.ts`) — única pieza serverless, para obtener el token de Google Drive del usuario de forma segura
-- **Google Drive API v3** (REST, llamada directamente desde el navegador con el token obtenido)
+- **Cloudflare Pages Functions** (`functions/api/`) — piezas serverless para el token de Drive y el sistema de enlaces compartidos
+- **Cloudflare Workers KV** — almacén clave-valor usado para resolver los enlaces de "Compartir un globo"
+- **Google Drive API v3** (REST, llamada directamente desde el navegador o desde las funciones serverless, según el caso)
