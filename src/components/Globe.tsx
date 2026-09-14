@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { generateFibonacciSphere } from '../utils/math';
-import { GLOBE_RADIUS, TOTAL_CARDS } from '../data';
+import { GLOBE_RADIUS } from '../data';
 import Card from './Card';
 
 // Keep the sphere at a sensible density even with very small or very large
@@ -11,8 +11,7 @@ const MIN_CARDS = 8;
 const MAX_CARDS = 96;
 
 interface GlobeProps {
-  userPhoto: string;
-  customPhotos?: string[] | null;
+  customPhotos: string[];
   rotationState: React.MutableRefObject<{ x: number, y: number }>;
   velocityState: React.MutableRefObject<{ x: number, y: number }>;
   isDragging: React.MutableRefObject<boolean>;
@@ -22,16 +21,12 @@ interface GlobeProps {
   onHoverOut?: () => void;
 }
 
-export default function Globe({ userPhoto, customPhotos, rotationState, velocityState, isDragging, lastInteraction, onSelect, onHover, onHoverOut }: GlobeProps) {
+export default function Globe({ customPhotos, rotationState, velocityState, isDragging, lastInteraction, onSelect, onHover, onHoverOut }: GlobeProps) {
   const groupRef = useRef<THREE.Group>(null);
-  
-  const hasCustomPhotos = !!customPhotos && customPhotos.length > 0;
 
-  // When the user supplies their own photos, size the globe to match the
-  // number of photos (repeating them if there are fewer than MIN_CARDS).
-  const cardCount = hasCustomPhotos
-    ? Math.min(MAX_CARDS, Math.max(MIN_CARDS, customPhotos!.length))
-    : TOTAL_CARDS;
+  // Size the globe to match the number of photos (repeating them if there
+  // are fewer than MIN_CARDS, capping at MAX_CARDS for very large sets).
+  const cardCount = Math.min(MAX_CARDS, Math.max(MIN_CARDS, customPhotos.length));
 
   // Precalculate the spherical grid positions and apply random scales
   const cardData = useMemo(() => {
@@ -82,8 +77,7 @@ export default function Globe({ userPhoto, customPhotos, rotationState, velocity
           index={i} 
           position={data.position} 
           scale={data.scale} 
-          userPhoto={userPhoto} 
-          customImage={hasCustomPhotos ? customPhotos![i % customPhotos!.length] : undefined}
+          customImage={customPhotos[i % customPhotos.length]}
           onSelect={(img, loc, info) => {
             if (!isDragging.current) {
               onSelect(img, loc, info);

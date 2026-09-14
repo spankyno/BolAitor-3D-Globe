@@ -1,14 +1,12 @@
 import * as THREE from 'three';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { CARD_WIDTH, CARD_HEIGHT, GLOBE_RADIUS } from '../data';
-import { getLocationByIndex } from '../locationsData';
 
 interface CardProps {
   index: number;
   position: THREE.Vector3;
   scale?: number;
-  userPhoto?: string | null;
-  customImage?: string;
+  customImage: string;
   onSelect: (image: string, location: string, info: string) => void;
   onHover?: (info: string) => void;
   onHoverOut?: () => void;
@@ -17,15 +15,9 @@ interface CardProps {
 export default function Card({ index, position, scale = 1, customImage, onSelect, onHover, onHoverOut }: CardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  const locationItem = useMemo(() => getLocationByIndex(index), [index]);
 
-  // When the user has uploaded their own photos, each card shows one of
-  // those instead of the curated landmark, with generic metadata.
-  const cardName = customImage ? `Foto ${index + 1}` : locationItem.name;
-  const cardInfo = customImage
-    ? 'Imagen subida por el usuario para su galería personalizada.'
-    : locationItem.info;
-  const cardImage = customImage || locationItem.imageUrl;
+  const cardName = `Foto ${index + 1}`;
+  const cardInfo = 'Imagen subida por el usuario para su galería personalizada.';
 
   // Default texture while loading
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
@@ -44,7 +36,7 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
       ctx.fillStyle = '#475569';
       ctx.font = 'bold 24px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(cardName.split(',')[0], 200, 250);
+      ctx.fillText(cardName, 200, 250);
     }
     const initialTex = new THREE.CanvasTexture(placeholderCanvas);
     initialTex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -54,48 +46,17 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin('anonymous');
 
-    if (customImage) {
-      // User-provided photo (from a local file or a ZIP): load it directly,
-      // no fallback needed since it's already available locally.
-      loader.load(customImage, (loadedTex) => {
-        if (!active) return;
-        loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
-        loadedTex.generateMipmaps = true;
-        setTexture(loadedTex);
-      });
-      return () => {
-        active = false;
-      };
-    }
-
-    // Load primary image, fallback to secondary if network error
-    loader.load(
-      locationItem.imageUrl,
-      (loadedTex) => {
-        if (!active) return;
-        loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
-        loadedTex.generateMipmaps = true;
-        setTexture(loadedTex);
-      },
-      undefined,
-      () => {
-        // Error handler: try fallback URL
-        loader.load(
-          locationItem.fallbackUrl,
-          (fallbackTex) => {
-            if (!active) return;
-            fallbackTex.minFilter = THREE.LinearMipmapLinearFilter;
-            fallbackTex.generateMipmaps = true;
-            setTexture(fallbackTex);
-          }
-        );
-      }
-    );
+    loader.load(customImage, (loadedTex) => {
+      if (!active) return;
+      loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+      loadedTex.generateMipmaps = true;
+      setTexture(loadedTex);
+    });
 
     return () => {
       active = false;
     };
-  }, [locationItem, customImage, cardName]);
+  }, [customImage, cardName]);
 
   useEffect(() => {
     if (hovered && onHover) {
@@ -147,7 +108,7 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
       geometry={geometry} 
       onClick={(e) => {
         e.stopPropagation();
-        onSelect(cardImage, cardName, cardInfo);
+        onSelect(customImage, cardName, cardInfo);
       }}
       onPointerOver={(e) => {
         e.stopPropagation();

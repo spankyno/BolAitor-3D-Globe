@@ -19,7 +19,7 @@ function CameraController({ targetZ }: { targetZ: React.MutableRefObject<number>
   return null;
 }
 
-export default function GalleryGlobe({ userPhoto, customPhotos, onSelect }: { userPhoto: string, customPhotos?: string[] | null, onSelect: (image: string, location: string, info: string) => void }) {
+export default function GalleryGlobe({ customPhotos, onSelect }: { customPhotos: string[], onSelect: (image: string, location: string, info: string) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Interaction State Maps
@@ -121,7 +121,6 @@ export default function GalleryGlobe({ userPhoto, customPhotos, onSelect }: { us
         <CameraController targetZ={targetZ} />
         <Suspense fallback={null}>
           <Globe 
-            userPhoto={userPhoto}
             customPhotos={customPhotos}
             rotationState={rotationState}
             velocityState={velocityState}

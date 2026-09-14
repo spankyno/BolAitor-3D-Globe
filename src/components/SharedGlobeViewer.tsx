@@ -82,8 +82,7 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
         className={`absolute inset-0 ${selectedCard ? 'pointer-events-none' : ''}`}
       >
         <GalleryGlobe
-          userPhoto="explorer"
-          customPhotos={photoUrls.length > 0 ? photoUrls : null}
+          customPhotos={photoUrls}
           onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })}
         />
       </motion.div>
@@ -93,7 +92,6 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
           <LocationDetailsScreen
             key="location-details"
             data={selectedCard}
-            userPhoto={null}
             onClose={() => setSelectedCard(null)}
           />
         )}

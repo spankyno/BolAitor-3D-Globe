@@ -9,7 +9,6 @@ import SharedGlobeViewer from './components/SharedGlobeViewer';
 const SHARE_PATH_MATCH = typeof window !== 'undefined' ? window.location.pathname.match(/^\/share\/([A-Za-z0-9_-]+)\/?$/) : null;
 
 export default function App() {
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [customPhotos, setCustomPhotos] = useState<string[] | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
   const [isLoadingGlobe, setIsLoadingGlobe] = useState(false);
@@ -25,11 +24,10 @@ export default function App() {
 
   return (
     <div className="w-full h-full relative bg-white overflow-hidden select-none">
-      {!userPhoto ? (
+      {!customPhotos ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
-          <IntroScreen onStart={(photo, photos) => {
-            setUserPhoto(photo);
-            setCustomPhotos(photos && photos.length > 0 ? photos : null);
+          <IntroScreen onStart={(photos) => {
+            setCustomPhotos(photos);
             setIsLoadingGlobe(true);
           }} />
         </div>
@@ -59,7 +57,6 @@ export default function App() {
             className={`absolute inset-0 ${selectedCard ? 'pointer-events-none' : ''}`}
           >
             <GalleryGlobe 
-              userPhoto={userPhoto} 
               customPhotos={customPhotos}
               onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })} 
             />
@@ -70,7 +67,6 @@ export default function App() {
               <LocationDetailsScreen 
                 key="location-details"
                 data={selectedCard}
-                userPhoto={userPhoto}
                 onClose={() => setSelectedCard(null)} 
               />
             )}
@@ -90,13 +86,10 @@ export default function App() {
 
               <div className="flex items-center gap-4 pointer-events-auto">
                 <button 
-                  onClick={() => {
-                    setUserPhoto(null);
-                    setCustomPhotos(null);
-                  }}
+                  onClick={() => setCustomPhotos(null)}
                   className="text-[11px] font-mono tracking-widest uppercase text-gray-500 hover:text-black bg-white/80 hover:bg-white backdrop-blur-sm px-3.5 py-1.5 border border-gray-200 shadow-sm transition-all rounded-none cursor-pointer"
                 >
-                  {customPhotos ? 'Cambiar fotos' : 'Change Photo'}
+                  Cambiar fotos
                 </button>
               </div>
             </motion.div>

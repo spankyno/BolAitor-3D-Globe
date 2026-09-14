@@ -2,7 +2,7 @@
 
 Una aplicación web de galería esférica en 3D interactiva construida con **React 19**, **Three.js** (`@react-three/fiber`), **Tailwind CSS v4** y **Vite**.
 
-Permite explorar 48 destinos icónicos del mundo en un globo esférico con rotación libre, inercia de arrastre, penetración de zoom al interior de la esfera y fichas informativas detalladas con locución por voz y detalles históricos.
+Permite crear tus propios "globos" de fotos y explorarlos en una esfera 3D con rotación libre, inercia de arrastre, penetración de zoom al interior de la esfera y fichas de detalle con locución por voz para cada foto.
 
 ### Tus propias fotos en el globo: "Mis globos"
 
@@ -25,7 +25,7 @@ Las fotos se cargan como texturas de las tarjetas del globo 3D correspondiente.
 
 ## 🔑 Configurar Clerk (login) + Google Drive
 
-Esta función es **opcional**: si no configuras nada, la app sigue funcionando igual (destinos curados, subir fotos sueltas o un ZIP), solo que esas fotos quedan únicamente en el navegador del usuario en esa sesión (no se guardan al recargar la página).
+Esta función es **opcional**: si no configuras nada, la app sigue funcionando igual (crear globos y subir fotos sueltas o un ZIP), solo que esas fotos quedan únicamente en el navegador del usuario en esa sesión (no se guardan al recargar la página).
 
 ### Arquitectura
 
@@ -151,7 +151,7 @@ Sin este binding configurado, los botones de "Compartir" mostrarán un error exp
 3. Copia el enlace generado con el botón de copiar. Pulsa **"Dejar de compartir"** en cualquier momento para desactivarlo (el enlace deja de funcionar al instante, aunque alguien lo tenga guardado).
 
 
-> **Frontend estático + funciones serverless opcionales:** El globo, la carga de fotos (ZIP/imágenes) y toda la interfaz funcionan como una app 100% estática, sin backend. El login (Clerk), el guardado en Google Drive y el enlace de compartir público son opcionales y añaden un puñado de funciones serverless bajo `functions/api/`, pensadas para desplegarse gratis junto al resto de la app en **Cloudflare Pages Functions** — no hace falta un servidor propio. Sin esa configuración, la app sigue funcionando igual (destinos curados + fotos locales).
+> **Frontend estático + funciones serverless opcionales:** El globo, la carga de fotos (ZIP/imágenes) y toda la interfaz funcionan como una app 100% estática, sin backend. El login (Clerk), el guardado en Google Drive y el enlace de compartir público son opcionales y añaden un puñado de funciones serverless bajo `functions/api/`, pensadas para desplegarse gratis junto al resto de la app en **Cloudflare Pages Functions** — no hace falta un servidor propio. Sin esa configuración, la app sigue funcionando igual (crear globos + fotos locales).
 
 ---
 

@@ -1,30 +1,16 @@
-import { useState, useMemo } from 'react';
-import { X, MapPin, Calendar, Globe as GlobeIcon, Volume2, VolumeX, Check, Copy, User } from 'lucide-react';
+import { useState } from 'react';
+import { X, Volume2, VolumeX, Check, Copy } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { motion } from 'motion/react';
-import { LOCATIONS_LIST } from '../locationsData';
 
 interface LocationDetailsProps {
   data: { image: string; location: string; info: string };
-  userPhoto?: string | null;
   onClose: () => void;
 }
 
-export default function LocationDetailsScreen({ data, userPhoto, onClose }: LocationDetailsProps) {
+export default function LocationDetailsScreen({ data, onClose }: LocationDetailsProps) {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-
-  // Match details from list
-  const locMeta = useMemo(() => {
-    return LOCATIONS_LIST.find(l => l.name.toLowerCase() === data.location.toLowerCase()) || {
-      name: data.location,
-      country: data.location.split(',')[1]?.trim() || '',
-      flag: '📍',
-      region: 'World',
-      coordinates: 'Coordinates available',
-      bestTime: 'Year-round'
-    };
-  }, [data.location]);
 
   const handleCopy = () => {
     const textToCopy = `${data.location}\n\n${data.info}`;
@@ -78,7 +64,7 @@ export default function LocationDetailsScreen({ data, userPhoto, onClose }: Loca
           <X className="w-5 h-5" />
         </button>
 
-        {/* Left Column: Visual & Landmark Info */}
+        {/* Left Column: Photo */}
         <div className="w-full md:w-[45%] h-64 md:h-auto bg-gray-950 flex-shrink-0 relative overflow-hidden group">
           <img 
             src={data.image} 
@@ -86,51 +72,14 @@ export default function LocationDetailsScreen({ data, userPhoto, onClose }: Loca
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">{locMeta.flag}</span>
-              <span className="text-xs uppercase tracking-widest font-semibold text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                {locMeta.region}
-              </span>
-            </div>
             <h2 className="text-2xl font-bold tracking-tight font-display">{data.location}</h2>
-            {locMeta.coordinates && (
-              <p className="text-xs text-gray-300 font-mono mt-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                {locMeta.coordinates}
-              </p>
-            )}
           </div>
-
-          {/* User photo companion tag if present */}
-          {userPhoto && userPhoto !== 'explorer' && userPhoto !== 'gallery' && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/50">
-              <img 
-                src={userPhoto} 
-                alt="Traveler" 
-                className="w-6 h-6 rounded-full object-cover border border-gray-300" 
-              />
-              <span className="text-[11px] font-medium text-gray-800 tracking-wide">
-                Your destination
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* Right Column: Historical / Cultural Content */}
+        {/* Right Column: Content */}
         <div className="w-full h-full md:w-[55%] flex flex-col p-6 sm:p-8 md:p-10 overflow-y-auto bg-white">
-          {/* Header Metadata Chips */}
+          {/* Header actions */}
           <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-gray-100">
-            {locMeta.bestTime && (
-              <div className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
-                <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                <span>Best: {locMeta.bestTime}</span>
-              </div>
-            )}
-            <div className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
-              <GlobeIcon className="w-3.5 h-3.5 text-gray-400" />
-              <span>{locMeta.country || 'Global Landmark'}</span>
-            </div>
-
             <div className="ml-auto flex items-center gap-1.5">
               {'speechSynthesis' in window && (
                 <button
@@ -170,8 +119,7 @@ export default function LocationDetailsScreen({ data, userPhoto, onClose }: Loca
 
           {/* Footer note */}
           <div className="mt-8 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <span>BolAitor 3D Globe Collection</span>
-            <span>48 World Landmarks</span>
+            <span>BolAitor 3D Globe</span>
           </div>
         </div>
       </motion.div>

@@ -1,4 +1,4 @@
-import { Camera, Upload, ArrowRight, Compass, Images, FileArchive, X, Loader2, Cloud, CloudOff, ArrowLeft, Pencil, Check } from 'lucide-react';
+import { ArrowRight, Images, FileArchive, X, Loader2, Cloud, CloudOff, ArrowLeft, Pencil, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { extractImagesFromFiles, extractImagesFromZip, revokeImageUrls } from '../utils/customPhotos';
 import {
@@ -19,14 +19,13 @@ import ShareControl from './ShareControl';
 import { makeLocalCollectionId, type Collection } from '../types/collection';
 
 interface IntroScreenProps {
-  onStart: (photoBase64: string, customPhotos?: string[]) => void;
+  onStart: (customPhotos: string[]) => void;
 }
 
-type Mode = 'menu' | 'collections' | 'gallery' | 'camera' | 'preview';
+type Mode = 'menu' | 'collections' | 'gallery';
 
 export default function IntroScreen({ onStart }: IntroScreenProps) {
   const [mode, setMode] = useState<Mode>('menu');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const {
     configured: driveConfigured,
@@ -55,11 +54,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
   const [renamingActive, setRenamingActive] = useState(false);
   const [renameValue, setRenameValue] = useState('');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const activeCollection = collections.find((c) => c.id === activeCollectionId) || null;
 
@@ -130,68 +126,11 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
   }, [isSignedIn]);
 
   const goToMenu = () => {
-    stopCamera();
-    setPreviewUrl(null);
     setMode('menu');
   };
 
   const goToCollections = () => {
-    stopCamera();
     setMode('collections');
-  };
-
-  const handleStart = (url: string) => {
-    onStart(url);
-  };
-
-  const startCamera = async () => {
-    try {
-      setMode('camera');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-    } catch (e) {
-      console.error("Camera access denied or unavailable", e);
-      setMode('menu');
-    }
-  };
-
-  const takePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const w = videoRef.current.videoWidth;
-      const h = videoRef.current.videoHeight;
-      canvasRef.current.width = w;
-      canvasRef.current.height = h;
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, w, h);
-        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setPreviewUrl(dataUrl);
-        stopCamera();
-        setMode('preview');
-      }
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreviewUrl(event.target?.result as string);
-        setMode('preview');
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   // --- Collection management ---
@@ -383,10 +322,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
   const startWithActiveCollection = () => {
     if (!activeCollection) return;
-    // 'gallery' is a sentinel value (like 'explorer') — there is no single
-    // "traveler photo" avatar in this flow, the globe itself is built from
-    // the collection's photos.
-    onStart('gallery', activeCollection.photos);
+    onStart(activeCollection.photos);
   };
 
   const startRenameActive = () => {
@@ -439,46 +375,9 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               )}
             </button>
 
-            {/* Direct exploration with curated destinations */}
-            <button
-              id="explore-globe-btn"
-              onClick={() => handleStart('explorer')}
-              className="flex items-center justify-center gap-3 w-full py-3.5 px-6 border border-gray-900 text-gray-900 bg-white hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs font-medium rounded-none cursor-pointer"
-            >
-              <Compass className="w-4 h-4" />
-              Explorar destinos del mundo
-            </button>
-
-            {/* Upload avatar photo */}
-            <button
-              id="upload-photo-btn"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-3 w-full py-3.5 px-6 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs font-medium rounded-none cursor-pointer"
-            >
-              <Upload className="w-4 h-4" />
-              Subir foto de viajero
-            </button>
-
-            {/* Click photo */}
-            <button
-              id="camera-photo-btn"
-              onClick={startCamera}
-              className="flex items-center justify-center gap-3 w-full py-3.5 px-6 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors uppercase tracking-widest text-xs font-medium rounded-none cursor-pointer"
-            >
-              <Camera className="w-4 h-4" />
-              Hacerme un selfie
-            </button>
-
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-            />
-
+            {/* Info footer */}
             <p className="text-[11px] text-gray-400 mt-4 tracking-wider uppercase font-mono">
-              48 Destinos Curados • WebGL 3D
+              WebGL 3D
             </p>
 
             {/* Registro / login centralizado con Clerk (incluye Google) */}
@@ -658,56 +557,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
           </div>
         )}
 
-        {/* Webcam Capture Mode */}
-        {mode === 'camera' && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-sm">
-            <div className="relative w-full aspect-[3/4] max-h-[48vh] bg-gray-100 border border-gray-900 overflow-hidden">
-              <video ref={videoRef} className="object-cover w-full h-full" playsInline muted />
-            </div>
-            <button
-              onClick={takePhoto}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 text-white bg-gray-900 hover:bg-black transition-colors uppercase tracking-widest text-xs font-medium cursor-pointer"
-            >
-              <Camera className="w-4 h-4" />
-              Capturar foto
-            </button>
-            <button
-              onClick={goToMenu}
-              className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 cursor-pointer"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
-
-        {/* Photo Preview Mode (avatar / selfie) */}
-        {mode === 'preview' && previewUrl && (
-          <div className="flex flex-col items-center gap-6 w-full max-w-xs">
-            <div className="w-44 aspect-[3/4] border border-gray-900 overflow-hidden bg-gray-100 shadow-md">
-              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-            </div>
-
-            <button
-              id="confirm-start-btn"
-              onClick={() => handleStart(previewUrl)}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 text-white bg-gray-900 hover:bg-black transition-colors uppercase tracking-widest text-xs font-semibold cursor-pointer"
-            >
-              Start Exploring
-              <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={goToMenu}
-              className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 cursor-pointer"
-            >
-              Elegir otra foto
-            </button>
-          </div>
-        )}
-
       </div>
 
-      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
