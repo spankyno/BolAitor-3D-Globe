@@ -12,6 +12,27 @@ interface CardProps {
   onHoverOut?: () => void;
 }
 
+// A single tiny, shared placeholder texture for every card while its real
+// photo is loading — much cheaper than each of the (up to 96) cards
+// building its own 400x500 canvas on every mount.
+let sharedPlaceholder: THREE.Texture | null = null;
+function getSharedPlaceholder(): THREE.Texture {
+  if (!sharedPlaceholder) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 4;
+    canvas.height = 4;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, 4, 4);
+    }
+    sharedPlaceholder = new THREE.CanvasTexture(canvas);
+    sharedPlaceholder.minFilter = THREE.LinearFilter;
+    sharedPlaceholder.generateMipmaps = false;
+  }
+  return sharedPlaceholder;
+}
+
 export default function Card({ index, position, scale = 1, customImage, onSelect, onHover, onHoverOut }: CardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
@@ -19,44 +40,36 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
   const cardName = `Foto ${index + 1}`;
   const cardInfo = 'Imagen subida por el usuario para su galería personalizada.';
 
-  // Default texture while loading
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [texture, setTexture] = useState<THREE.Texture>(() => getSharedPlaceholder());
 
   useEffect(() => {
     let active = true;
-
-    // Load neutral placeholder texture initially
-    const placeholderCanvas = document.createElement('canvas');
-    placeholderCanvas.width = 400;
-    placeholderCanvas.height = 500;
-    const ctx = placeholderCanvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, 400, 500);
-      ctx.fillStyle = '#475569';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(cardName, 200, 250);
-    }
-    const initialTex = new THREE.CanvasTexture(placeholderCanvas);
-    initialTex.minFilter = THREE.LinearMipmapLinearFilter;
-    initialTex.generateMipmaps = true;
-    setTexture(initialTex);
+    let loadedTex: THREE.Texture | null = null;
 
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin('anonymous');
-
-    loader.load(customImage, (loadedTex) => {
-      if (!active) return;
-      loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
-      loadedTex.generateMipmaps = true;
-      setTexture(loadedTex);
+    loader.load(customImage, (tex) => {
+      if (!active) {
+        // Component unmounted or customImage changed again before this
+        // finished loading — don't leak the GPU texture we just made.
+        tex.dispose();
+        return;
+      }
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.generateMipmaps = true;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      loadedTex = tex;
+      setTexture(tex);
     });
 
     return () => {
       active = false;
+      // Dispose the previously loaded photo texture (not the shared
+      // placeholder) whenever this card moves on to a different image or
+      // unmounts, to avoid accumulating GPU memory across globes.
+      loadedTex?.dispose();
     };
-  }, [customImage, cardName]);
+  }, [customImage]);
 
   useEffect(() => {
     if (hovered && onHover) {
@@ -100,6 +113,14 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
     return geo;
   }, [scale]);
 
+  // Dispose the plane geometry whenever it's replaced (scale changed) or
+  // the card unmounts.
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
+
   return (
     <mesh 
       position={position} 
@@ -127,13 +148,11 @@ export default function Card({ index, position, scale = 1, customImage, onSelect
       }}
     >
       {/* DoubleSide allows the interior views of the cards to be seen when passing through */}
-      {texture && (
-        <meshBasicMaterial 
-          map={texture} 
-          side={THREE.DoubleSide} 
-          toneMapped={false} 
-        />
-      )}
+      <meshBasicMaterial 
+        map={texture} 
+        side={THREE.DoubleSide} 
+        toneMapped={false} 
+      />
     </mesh>
   );
 }

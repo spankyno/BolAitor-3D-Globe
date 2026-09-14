@@ -1,6 +1,7 @@
 import { ArrowRight, Images, FileArchive, X, Loader2, Cloud, CloudOff, ArrowLeft, Pencil, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { extractImagesFromFiles, extractImagesFromZip, revokeImageUrls } from '../utils/customPhotos';
+import { mapWithConcurrency } from '../utils/concurrency';
 import {
   countPhotosInFolder,
   createCollection,
@@ -82,15 +83,18 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         setDriveRootFolderId(rootId);
 
         const subfolders = await listCollections(token, rootId);
-        const loaded: Collection[] = [];
-        for (const sf of subfolders) {
-          const count = await countPhotosInFolder(token, sf.id);
-          loaded.push({ id: sf.id, name: sf.name, photos: [], photosLoaded: false, driveFolderId: sf.id, photoCount: count });
-        }
+        // Run the subfolder counts and the root's own loose-photo count at
+        // the same time, instead of one after another.
+        const [loaded, looseCount] = await Promise.all([
+          mapWithConcurrency(subfolders, 6, async (sf) => {
+            const count = await countPhotosInFolder(token, sf.id);
+            return { id: sf.id, name: sf.name, photos: [], photosLoaded: false, driveFolderId: sf.id, photoCount: count } as Collection;
+          }),
+          countPhotosInFolder(token, rootId),
+        ]);
         // Backwards-compatibility: photos uploaded before "collections"
         // existed sit loose in the root folder — surface them as a
         // collection too, so nothing gets orphaned.
-        const looseCount = await countPhotosInFolder(token, rootId);
         if (looseCount > 0) {
           loaded.unshift({
             id: rootId,
@@ -234,13 +238,12 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     setGalleryLoading(true);
     setGalleryError(null);
     try {
-      const imageFiles = files.filter((f) => f.type.startsWith('image/'));
-      const urls = await extractImagesFromFiles(imageFiles);
+      const { urls, blobs, names } = await extractImagesFromFiles(files);
       if (urls.length === 0) {
         setGalleryError('No se encontraron imágenes válidas en los archivos seleccionados.');
       } else {
         addPhotosToActiveCollection(urls);
-        syncNewPhotosToDrive(activeCollection.id, activeCollection.driveFolderId, imageFiles.map((f, i) => ({ blob: f, name: f.name, url: urls[i] })));
+        syncNewPhotosToDrive(activeCollection.id, activeCollection.driveFolderId, blobs.map((blob, i) => ({ blob, name: names[i], url: urls[i] })));
       }
     } catch (err) {
       console.error(err);
@@ -522,7 +525,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
                 <div className="w-full grid grid-cols-4 gap-2 max-h-52 overflow-y-auto p-1">
                   {activeCollection.photos.map((url, i) => (
                     <div key={url + i} className="relative aspect-square group">
-                      <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover border border-gray-200" />
+                      <img src={url} alt={`Foto ${i + 1}`} loading="lazy" className="w-full h-full object-cover border border-gray-200" />
                       <button
                         onClick={() => removePhotoFromActiveCollection(i)}
                         className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"

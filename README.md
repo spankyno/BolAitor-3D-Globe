@@ -155,6 +155,17 @@ Sin este binding configurado, los botones de "Compartir" mostrarán un error exp
 
 ---
 
+## ⚡ Rendimiento
+
+- **Three.js con carga diferida (`React.lazy`)**: `GalleryGlobe` (y con él `three`, `@react-three/fiber` y `@react-three/drei`, la parte más pesada de la app) ya no forma parte del bundle inicial. Se descarga solo cuando el usuario realmente abre un globo, mientras se muestra un indicador de carga. Esto redujo el JS inicial de ~1,55 MB a ~554 KB (minificado; ~440 KB → ~168 KB con gzip).
+- **`JSZip` con carga diferida**: la librería para descomprimir archivos `.zip` (~98 KB) solo se descarga si el usuario efectivamente sube un ZIP, no en cada visita.
+- **Redimensionado de fotos en el navegador** (`src/utils/imageResize.ts`): antes de mostrarlas o subirlas a Drive, cada foto se reescala a un máximo de 1600px de lado y se recomprime (JPEG calidad 0.85, o PNG si el original puede tener transparencia). Las fotos de móvil suelen venir a 3000-4000px y varios MB; esto reduce drásticamente el tiempo de decodificación de la textura, la memoria de la GPU, el espacio ocupado en Drive y el ancho de banda de cada foto servida a través de un enlace compartido. Si el original ya es pequeño, se deja tal cual.
+- **Descargas de Drive en paralelo**: recuperar las fotos de un globo guardado, o contar cuántas fotos tiene cada uno al iniciar sesión, antes se hacía una a una (`for` secuencial); ahora se hace con varias descargas simultáneas (`src/utils/concurrency.ts`), con un límite razonable para no saturar la API de Drive.
+- **Gestión de memoria de GPU en las tarjetas del globo**: todas las tarjetas comparten una única textura de "cargando" en vez de crear un `<canvas>` por tarjeta (hasta 96), y cada textura y geometría se libera explícitamente (`.dispose()`) al cambiar de foto o de globo, evitando fugas de memoria de vídeo en sesiones largas.
+- **`loading="lazy"`** en las miniaturas de la pantalla de "Mis globos".
+
+---
+
 ## 🚀 Despliegue en Cloudflare Pages
 
 ### Método 1: Conectar Repositorio de GitHub (Recomendado)

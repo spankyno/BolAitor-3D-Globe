@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import GalleryGlobe from './components/GalleryGlobe';
+import { Loader2 } from 'lucide-react';
 import IntroScreen from './components/IntroScreen';
 import LocationDetailsScreen from './components/LocationDetailsScreen';
 import LoadingOverlay from './components/LoadingOverlay';
 import SharedGlobeViewer from './components/SharedGlobeViewer';
+
+// GalleryGlobe (and therefore three.js / @react-three/fiber / @react-three/drei)
+// is only ever needed once the user has chosen a photo collection to
+// explore — loading it lazily keeps those heavy libraries out of the
+// initial bundle that renders the menu.
+const GalleryGlobe = lazy(() => import('./components/GalleryGlobe'));
 
 const SHARE_PATH_MATCH = typeof window !== 'undefined' ? window.location.pathname.match(/^\/share\/([A-Za-z0-9_-]+)\/?$/) : null;
 
@@ -56,10 +62,21 @@ export default function App() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className={`absolute inset-0 ${selectedCard ? 'pointer-events-none' : ''}`}
           >
-            <GalleryGlobe 
-              customPhotos={customPhotos}
-              onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })} 
-            />
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-white">
+                  <div className="flex items-center gap-2 text-gray-400 text-xs font-mono uppercase tracking-widest">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cargando el globo…
+                  </div>
+                </div>
+              }
+            >
+              <GalleryGlobe 
+                customPhotos={customPhotos}
+                onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })} 
+              />
+            </Suspense>
           </motion.div>
 
           <AnimatePresence>

@@ -5,6 +5,8 @@
 // signed-in user's own Drive, using the "drive.file" scope: this app can
 // only see/manage the files it creates, never the rest of the user's Drive.
 
+import { mapWithConcurrency } from './concurrency';
+
 const DRIVE_FILES_API = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files';
 export const APP_FOLDER_NAME = 'BolAitor 3D Globe';
@@ -84,7 +86,9 @@ export async function uploadPhotoToDrive(
 
 /**
  * Lists and downloads every image previously stored in the app's Drive
- * folder, so a returning user's globe can be rebuilt.
+ * folder, so a returning user's globe can be rebuilt. Downloads happen
+ * with limited concurrency instead of one at a time, which matters a lot
+ * once a collection has more than a handful of photos.
  */
 export async function listDrivePhotos(accessToken: string, folderId: string): Promise<DrivePhoto[]> {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType contains 'image/'`);
@@ -95,17 +99,18 @@ export async function listDrivePhotos(accessToken: string, folderId: string): Pr
   const data = await res.json();
   const files: { id: string; name: string }[] = data.files || [];
 
-  const photos: DrivePhoto[] = [];
-  for (const f of files) {
+  const results = await mapWithConcurrency(files, 6, async (f) => {
     try {
       const contentRes = await driveFetch(accessToken, `${DRIVE_FILES_API}/${f.id}?alt=media`);
       const blob = await contentRes.blob();
-      photos.push({ id: f.id, name: f.name, url: URL.createObjectURL(blob) });
+      return { id: f.id, name: f.name, url: URL.createObjectURL(blob) } as DrivePhoto;
     } catch (e) {
       console.error('No se pudo descargar una foto de Drive:', f.name, e);
+      return null;
     }
-  }
-  return photos;
+  });
+
+  return results.filter((p): p is DrivePhoto => p !== null);
 }
 
 export async function deleteDrivePhoto(accessToken: string, fileId: string): Promise<void> {

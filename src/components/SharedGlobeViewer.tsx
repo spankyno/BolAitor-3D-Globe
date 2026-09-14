@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, Globe2 } from 'lucide-react';
-import GalleryGlobe from './GalleryGlobe';
 import LocationDetailsScreen from './LocationDetailsScreen';
+
+// Lazily loaded so an anonymous visitor's first paint isn't blocked on
+// three.js / @react-three/fiber / @react-three/drei.
+const GalleryGlobe = lazy(() => import('./GalleryGlobe'));
 
 interface SharedGlobeViewerProps {
   token: string;
@@ -23,6 +26,10 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
 
   useEffect(() => {
+    // Start downloading the globe's code in parallel with the metadata
+    // fetch below, instead of only after the metadata resolves.
+    import('./GalleryGlobe');
+
     let cancelled = false;
     (async () => {
       try {
@@ -81,10 +88,21 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className={`absolute inset-0 ${selectedCard ? 'pointer-events-none' : ''}`}
       >
-        <GalleryGlobe
-          customPhotos={photoUrls}
-          onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })}
-        />
+        <Suspense
+          fallback={
+            <div className="w-full h-full flex items-center justify-center bg-white">
+              <div className="flex items-center gap-2 text-gray-400 text-xs font-mono uppercase tracking-widest">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Cargando el globo…
+              </div>
+            </div>
+          }
+        >
+          <GalleryGlobe
+            customPhotos={photoUrls}
+            onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })}
+          />
+        </Suspense>
       </motion.div>
 
       <AnimatePresence>
