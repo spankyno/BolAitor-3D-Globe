@@ -5,6 +5,8 @@ import IntroScreen from './components/IntroScreen';
 import LocationDetailsScreen from './components/LocationDetailsScreen';
 import LoadingOverlay from './components/LoadingOverlay';
 import SharedGlobeViewer from './components/SharedGlobeViewer';
+import PrivacyPolicyPage from './components/PrivacyPolicyPage';
+import TermsOfServicePage from './components/TermsOfServicePage';
 
 // GalleryGlobe (and therefore three.js / @react-three/fiber / @react-three/drei)
 // is only ever needed once the user has chosen a photo collection to
@@ -13,11 +15,17 @@ import SharedGlobeViewer from './components/SharedGlobeViewer';
 const GalleryGlobe = lazy(() => import('./components/GalleryGlobe'));
 
 const SHARE_PATH_MATCH = typeof window !== 'undefined' ? window.location.pathname.match(/^\/share\/([A-Za-z0-9_-]+)\/?$/) : null;
+const IS_PRIVACY_PAGE = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/privacidad';
+const IS_TERMS_PAGE = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/terminos';
 
 export default function App() {
   const [customPhotos, setCustomPhotos] = useState<string[] | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
   const [isLoadingGlobe, setIsLoadingGlobe] = useState(false);
+
+  // Static legal pages: no login, no globe, no Drive context needed.
+  if (IS_PRIVACY_PAGE) return <PrivacyPolicyPage />;
+  if (IS_TERMS_PAGE) return <TermsOfServicePage />;
 
   // Public, read-only shared globe: /share/<token> — no login, no menu.
   if (SHARE_PATH_MATCH) {

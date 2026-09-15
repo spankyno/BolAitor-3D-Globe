@@ -17,6 +17,7 @@ import { useDriveAuth } from '../context/DriveAuthContext';
 import { AccountPill, ConnectDriveButton, SignInPrompt } from './ClerkAuth';
 import CollectionsScreen from './CollectionsScreen';
 import ShareControl from './ShareControl';
+import LegalFooter from './LegalFooter';
 import { makeLocalCollectionId, type Collection } from '../types/collection';
 
 interface IntroScreenProps {
@@ -561,6 +562,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         )}
 
       </div>
+
+      <LegalFooter />
 
     </div>
   );
