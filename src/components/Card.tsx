@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { CARD_WIDTH, CARD_HEIGHT, GLOBE_RADIUS } from '../data';
+import { DEFAULT_PHOTO_DESCRIPTION } from '../utils/photoCaption';
 
 interface CardProps {
   index: number;
   position: THREE.Vector3;
   scale?: number;
   customImage: string;
+  customTitle?: string;
+  customDescription?: string;
   onSelect: (image: string, location: string, info: string) => void;
   onHover?: (info: string) => void;
   onHoverOut?: () => void;
@@ -33,12 +36,12 @@ function getSharedPlaceholder(): THREE.Texture {
   return sharedPlaceholder;
 }
 
-export default function Card({ index, position, scale = 1, customImage, onSelect, onHover, onHoverOut }: CardProps) {
+export default function Card({ index, position, scale = 1, customImage, customTitle, customDescription, onSelect, onHover, onHoverOut }: CardProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  const cardName = `Foto ${index + 1}`;
-  const cardInfo = 'Imagen subida por el usuario para su galería personalizada.';
+  const cardName = customTitle?.trim() || `Foto ${index + 1}`;
+  const cardInfo = customDescription?.trim() || DEFAULT_PHOTO_DESCRIPTION;
 
   const [texture, setTexture] = useState<THREE.Texture>(() => getSharedPlaceholder());
 

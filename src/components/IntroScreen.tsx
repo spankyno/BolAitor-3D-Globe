@@ -2,6 +2,7 @@ import { ArrowRight, Images, FileArchive, X, Loader2, Cloud, CloudOff, ArrowLeft
 import { useEffect, useRef, useState } from 'react';
 import { extractImagesFromFiles, extractImagesFromZip, revokeImageUrls } from '../utils/customPhotos';
 import { mapWithConcurrency } from '../utils/concurrency';
+import { DEFAULT_PHOTO_DESCRIPTION, titleFromFilename } from '../utils/photoCaption';
 import {
   countPhotosInFolder,
   createCollection,
@@ -11,6 +12,7 @@ import {
   listCollections,
   listDrivePhotos,
   renameCollection,
+  updatePhotoMetadata,
   uploadPhotoToDrive,
 } from '../utils/googleDrive';
 import { useDriveAuth } from '../context/DriveAuthContext';
@@ -18,10 +20,11 @@ import { AccountPill, ConnectDriveButton, SignInPrompt } from './ClerkAuth';
 import CollectionsScreen from './CollectionsScreen';
 import ShareControl from './ShareControl';
 import LegalFooter from './LegalFooter';
-import { makeLocalCollectionId, type Collection } from '../types/collection';
+import PhotoCaptionEditor from './PhotoCaptionEditor';
+import { makeLocalCollectionId, type Collection, type CollectionPhoto } from '../types/collection';
 
 interface IntroScreenProps {
-  onStart: (customPhotos: string[]) => void;
+  onStart: (customPhotos: CollectionPhoto[]) => void;
 }
 
 type Mode = 'menu' | 'collections' | 'gallery';
@@ -45,8 +48,6 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
   const [restoringCollection, setRestoringCollection] = useState(false);
   const [driveRootFolderId, setDriveRootFolderId] = useState<string | null>(null);
   const collectionsRestored = useRef(false);
-  // collectionId -> (object URL -> Drive file id), for photos synced to Drive.
-  const driveIdsRef = useRef<Map<string, Map<string, string>>>(new Map());
 
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryError, setGalleryError] = useState<string | null>(null);
@@ -55,20 +56,12 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
   const [renamingActive, setRenamingActive] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
 
   const imagesInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
 
   const activeCollection = collections.find((c) => c.id === activeCollectionId) || null;
-
-  function getCollectionDriveIds(collectionId: string): Map<string, string> {
-    let m = driveIdsRef.current.get(collectionId);
-    if (!m) {
-      m = new Map();
-      driveIdsRef.current.set(collectionId, m);
-    }
-    return m;
-  }
 
   // Once signed in (via Clerk), restore the user's saved collections from
   // their Drive app folder.
@@ -135,6 +128,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
   };
 
   const goToCollections = () => {
+    setEditingPhotoIndex(null);
     setMode('collections');
   };
 
@@ -179,11 +173,15 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       setDriveError(null);
       try {
         const token = await getDriveAccessToken();
-        const photos = await listDrivePhotos(token, col.driveFolderId);
-        const idsMap = getCollectionDriveIds(id);
-        photos.forEach((p) => idsMap.set(p.url, p.id));
+        const drivePhotos = await listDrivePhotos(token, col.driveFolderId);
+        const photos: CollectionPhoto[] = drivePhotos.map((p, i) => ({
+          url: p.url,
+          title: titleFromFilename(p.name, `Foto ${i + 1}`),
+          description: p.description || DEFAULT_PHOTO_DESCRIPTION,
+          driveId: p.id,
+        }));
         setCollections((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, photos: photos.map((p) => p.url), photosLoaded: true } : c))
+          prev.map((c) => (c.id === id ? { ...c, photos, photosLoaded: true } : c))
         );
       } catch (e) {
         console.error(e);
@@ -216,8 +214,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       setMode('collections');
     }
     if (col) {
-      revokeImageUrls(col.photos);
-      driveIdsRef.current.delete(id);
+      revokeImageUrls(col.photos.map((p) => p.url));
     }
     if (col?.driveFolderId && isSignedIn) {
       try {
@@ -243,7 +240,13 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       if (urls.length === 0) {
         setGalleryError('No se encontraron imágenes válidas en los archivos seleccionados.');
       } else {
-        addPhotosToActiveCollection(urls);
+        const baseIndex = activeCollection.photos.length;
+        const newPhotos: CollectionPhoto[] = urls.map((url, i) => ({
+          url,
+          title: titleFromFilename(names[i], `Foto ${baseIndex + i + 1}`),
+          description: DEFAULT_PHOTO_DESCRIPTION,
+        }));
+        addPhotosToActiveCollection(newPhotos);
         syncNewPhotosToDrive(activeCollection.id, activeCollection.driveFolderId, blobs.map((blob, i) => ({ blob, name: names[i], url: urls[i] })));
       }
     } catch (err) {
@@ -265,7 +268,13 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       if (urls.length === 0) {
         setGalleryError('El ZIP no contiene imágenes reconocibles (jpg, png, webp, gif).');
       } else {
-        addPhotosToActiveCollection(urls);
+        const baseIndex = activeCollection.photos.length;
+        const newPhotos: CollectionPhoto[] = urls.map((url, i) => ({
+          url,
+          title: titleFromFilename(names[i], `Foto ${baseIndex + i + 1}`),
+          description: DEFAULT_PHOTO_DESCRIPTION,
+        }));
+        addPhotosToActiveCollection(newPhotos);
         syncNewPhotosToDrive(activeCollection.id, activeCollection.driveFolderId, blobs.map((blob, i) => ({ blob, name: names[i], url: urls[i] })));
       }
     } catch (err) {
@@ -276,10 +285,10 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     }
   };
 
-  function addPhotosToActiveCollection(urls: string[]) {
+  function addPhotosToActiveCollection(newPhotos: CollectionPhoto[]) {
     if (!activeCollectionId) return;
     setCollections((prev) =>
-      prev.map((c) => (c.id === activeCollectionId ? { ...c, photos: [...c.photos, ...urls] } : c))
+      prev.map((c) => (c.id === activeCollectionId ? { ...c, photos: [...c.photos, ...newPhotos] } : c))
     );
   }
 
@@ -294,7 +303,13 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       try {
         const token = await getDriveAccessToken();
         const uploaded = await uploadPhotoToDrive(token, driveFolderId, blob, name);
-        getCollectionDriveIds(collectionId).set(url, uploaded.id);
+        setCollections((prev) =>
+          prev.map((c) =>
+            c.id === collectionId
+              ? { ...c, photos: c.photos.map((p) => (p.url === url ? { ...p, driveId: uploaded.id } : p)) }
+              : c
+          )
+        );
       } catch (e) {
         console.error('No se pudo subir la foto a Drive:', name, e);
         setDriveError('Algunas fotos no se pudieron guardar en Google Drive (se mostrarán igualmente en este dispositivo).');
@@ -307,20 +322,38 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
   const removePhotoFromActiveCollection = (index: number) => {
     if (!activeCollection) return;
     const collectionId = activeCollection.id;
-    const url = activeCollection.photos[index];
+    const photo = activeCollection.photos[index];
     setCollections((prev) =>
       prev.map((c) => (c.id === collectionId ? { ...c, photos: c.photos.filter((_, i) => i !== index) } : c))
     );
-    if (url) {
-      revokeImageUrls([url]);
-      const idsMap = driveIdsRef.current.get(collectionId);
-      const driveId = idsMap?.get(url);
-      if (driveId && isSignedIn) {
+    if (photo) {
+      revokeImageUrls([photo.url]);
+      if (photo.driveId && isSignedIn) {
         getDriveAccessToken()
-          .then((token) => deleteDrivePhoto(token, driveId))
+          .then((token) => deleteDrivePhoto(token, photo.driveId!))
           .catch((e) => console.error('No se pudo borrar la foto de Drive:', e));
       }
-      idsMap?.delete(url);
+    }
+  };
+
+  const handleSaveCaption = (index: number, title: string, description: string) => {
+    if (!activeCollection) return;
+    const collectionId = activeCollection.id;
+    const photo = activeCollection.photos[index];
+    setCollections((prev) =>
+      prev.map((c) =>
+        c.id === collectionId
+          ? { ...c, photos: c.photos.map((p, i) => (i === index ? { ...p, title, description } : p)) }
+          : c
+      )
+    );
+    if (photo?.driveId && isSignedIn) {
+      getDriveAccessToken()
+        .then((token) => updatePhotoMetadata(token, photo.driveId!, { name: title, description }))
+        .catch((e) => {
+          console.error('No se pudo guardar el título/descripción en Drive:', e);
+          setDriveError('No se pudo guardar el título/descripción en Google Drive (se mantiene en este dispositivo).');
+        });
     }
   };
 
@@ -524,9 +557,18 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             {activeCollection.photos.length > 0 && (
               <>
                 <div className="w-full grid grid-cols-4 gap-2 max-h-52 overflow-y-auto p-1">
-                  {activeCollection.photos.map((url, i) => (
-                    <div key={url + i} className="relative aspect-square group">
-                      <img src={url} alt={`Foto ${i + 1}`} loading="lazy" className="w-full h-full object-cover border border-gray-200" />
+                  {activeCollection.photos.map((photo, i) => (
+                    <div key={photo.url + i} className="relative aspect-square group">
+                      <img src={photo.url} alt={photo.title} loading="lazy" className="w-full h-full object-cover border border-gray-200" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        onClick={() => setEditingPhotoIndex(i)}
+                        className="absolute bottom-1 left-1 bg-white/90 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        aria-label="Editar título y descripción"
+                        title="Editar título y descripción"
+                      >
+                        <Pencil className="w-2.5 h-2.5" />
+                      </button>
                       <button
                         onClick={() => removePhotoFromActiveCollection(i)}
                         className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -562,6 +604,16 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         )}
 
       </div>
+
+      {editingPhotoIndex !== null && activeCollection?.photos[editingPhotoIndex] && (
+        <PhotoCaptionEditor
+          photoUrl={activeCollection.photos[editingPhotoIndex].url}
+          initialTitle={activeCollection.photos[editingPhotoIndex].title}
+          initialDescription={activeCollection.photos[editingPhotoIndex].description}
+          onSave={(title, description) => handleSaveCaption(editingPhotoIndex, title, description)}
+          onClose={() => setEditingPhotoIndex(null)}
+        />
+      )}
 
       <LegalFooter />
 

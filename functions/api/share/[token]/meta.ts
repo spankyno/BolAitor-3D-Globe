@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     ]);
     return json({
       name,
-      photos: files.map((f) => ({ id: f.id, name: f.name })),
+      photos: files.map((f) => ({ id: f.id, name: f.name, description: f.description || '' })),
     });
   } catch (e) {
     console.error(e);

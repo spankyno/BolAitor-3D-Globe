@@ -5,6 +5,7 @@ export interface DriveFileMeta {
   name: string;
   mimeType?: string;
   parents?: string[];
+  description?: string;
 }
 
 async function driveFetch(accessToken: string, url: string, init: RequestInit = {}): Promise<Response> {
@@ -38,7 +39,7 @@ export async function listFolderImages(accessToken: string, folderId: string): P
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType contains 'image/'`);
   const res = await driveFetch(
     accessToken,
-    `${DRIVE_FILES_API}?q=${q}&fields=files(id,name,mimeType)&orderBy=name&spaces=drive&pageSize=200`
+    `${DRIVE_FILES_API}?q=${q}&fields=files(id,name,mimeType,description)&orderBy=name&spaces=drive&pageSize=200`
   );
   const data = (await res.json()) as { files?: DriveFileMeta[] };
   return data.files || [];

@@ -1,9 +1,7 @@
 import LegalPageLayout from './LegalPageLayout';
 
-// NOTE: replace [tu-email-de-contacto] and [tu nombre o el de tu proyecto]
-// with your real contact details before publishing.
-const CONTACT_EMAIL = '[blog.cottage627@passinbox.com]';
-const OWNER_NAME = '[Aitor Sánchez Gutiérrez]';
+const CONTACT_EMAIL = 'blog.cottage627@passinbox.com';
+const OWNER_NAME = 'Aitor Sánchez Gutiérrez';
 
 export default function PrivacyPolicyPage() {
   return (

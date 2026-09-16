@@ -13,7 +13,7 @@ Desde el menú principal, cualquier usuario puede crear varios **globos con nomb
 
 Cada globo se puede renombrar o eliminar por separado. Sin iniciar sesión, los globos creados solo viven en la memoria del navegador durante esa sesión; iniciando sesión con Google (ver sección siguiente), cada globo se guarda como una **subcarpeta** dentro de tu carpeta de Drive "BolAitor 3D Globe", y se recupera automáticamente la próxima vez que entres.
 
-Las fotos se cargan como texturas de las tarjetas del globo 3D correspondiente.
+Las fotos se cargan como texturas de las tarjetas del globo 3D correspondiente. Cada foto se puede editar individualmente (pasa el ratón sobre su miniatura y pulsa el lápiz) para ponerle un **título y una descripción propios**, que se muestran al hacer clic en su tarjeta dentro del globo. Si la foto está guardada en Drive, el título se guarda como el nombre del archivo y la descripción en el campo nativo `description` de Drive — sin metadatos personalizados adicionales.
 
 ### Hoja de ruta
 

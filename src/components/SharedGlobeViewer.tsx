@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, Globe2 } from 'lucide-react';
 import LocationDetailsScreen from './LocationDetailsScreen';
+import { DEFAULT_PHOTO_DESCRIPTION, titleFromFilename } from '../utils/photoCaption';
+import type { CollectionPhoto } from '../types/collection';
 
 // Lazily loaded so an anonymous visitor's first paint isn't blocked on
 // three.js / @react-three/fiber / @react-three/drei.
@@ -14,6 +16,7 @@ interface SharedGlobeViewerProps {
 interface SharedPhotoMeta {
   id: string;
   name: string;
+  description?: string;
 }
 
 type Status = 'loading' | 'ready' | 'error';
@@ -22,7 +25,7 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
   const [status, setStatus] = useState<Status>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [collectionName, setCollectionName] = useState('');
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<CollectionPhoto[]>([]);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
 
   useEffect(() => {
@@ -39,9 +42,15 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
           throw new Error(data.error || 'No se pudo cargar este globo compartido.');
         }
         if (cancelled) return;
-        const photos: SharedPhotoMeta[] = data.photos || [];
+        const sharedPhotos: SharedPhotoMeta[] = data.photos || [];
         setCollectionName(data.name || 'Globo compartido');
-        setPhotoUrls(photos.map((p) => `/api/share/${token}/photo/${p.id}`));
+        setPhotos(
+          sharedPhotos.map((p, i) => ({
+            url: `/api/share/${token}/photo/${p.id}`,
+            title: titleFromFilename(p.name, `Foto ${i + 1}`),
+            description: p.description || DEFAULT_PHOTO_DESCRIPTION,
+          }))
+        );
         setStatus('ready');
       } catch (e) {
         if (cancelled) return;
@@ -99,7 +108,7 @@ export default function SharedGlobeViewer({ token }: SharedGlobeViewerProps) {
           }
         >
           <GalleryGlobe
-            customPhotos={photoUrls}
+            customPhotos={photos}
             onSelect={(img, loc, info) => setSelectedCard({ image: img, location: loc, info })}
           />
         </Suspense>

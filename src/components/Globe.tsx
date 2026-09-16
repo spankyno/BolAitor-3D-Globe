@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { generateFibonacciSphere } from '../utils/math';
 import { GLOBE_RADIUS } from '../data';
+import type { CollectionPhoto } from '../types/collection';
 import Card from './Card';
 
 // Keep the sphere at a sensible density even with very small or very large
@@ -11,7 +12,7 @@ const MIN_CARDS = 8;
 const MAX_CARDS = 96;
 
 interface GlobeProps {
-  customPhotos: string[];
+  customPhotos: CollectionPhoto[];
   rotationState: React.MutableRefObject<{ x: number, y: number }>;
   velocityState: React.MutableRefObject<{ x: number, y: number }>;
   isDragging: React.MutableRefObject<boolean>;
@@ -71,22 +72,27 @@ export default function Globe({ customPhotos, rotationState, velocityState, isDr
 
   return (
     <group ref={groupRef}>
-      {cardData.map((data, i) => (
-        <Card 
-          key={i} 
-          index={i} 
-          position={data.position} 
-          scale={data.scale} 
-          customImage={customPhotos[i % customPhotos.length]}
-          onSelect={(img, loc, info) => {
-            if (!isDragging.current) {
-              onSelect(img, loc, info);
-            }
-          }}
-          onHover={onHover}
-          onHoverOut={onHoverOut}
-        />
-      ))}
+      {cardData.map((data, i) => {
+        const photo = customPhotos[i % customPhotos.length];
+        return (
+          <Card
+            key={i}
+            index={i}
+            position={data.position}
+            scale={data.scale}
+            customImage={photo.url}
+            customTitle={photo.title}
+            customDescription={photo.description}
+            onSelect={(img, loc, info) => {
+              if (!isDragging.current) {
+                onSelect(img, loc, info);
+              }
+            }}
+            onHover={onHover}
+            onHoverOut={onHoverOut}
+          />
+        );
+      })}
     </group>
   );
 }

@@ -7,6 +7,7 @@ import LoadingOverlay from './components/LoadingOverlay';
 import SharedGlobeViewer from './components/SharedGlobeViewer';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsOfServicePage from './components/TermsOfServicePage';
+import type { CollectionPhoto } from './types/collection';
 
 // GalleryGlobe (and therefore three.js / @react-three/fiber / @react-three/drei)
 // is only ever needed once the user has chosen a photo collection to
@@ -19,7 +20,7 @@ const IS_PRIVACY_PAGE = typeof window !== 'undefined' && window.location.pathnam
 const IS_TERMS_PAGE = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/terminos';
 
 export default function App() {
-  const [customPhotos, setCustomPhotos] = useState<string[] | null>(null);
+  const [customPhotos, setCustomPhotos] = useState<CollectionPhoto[] | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ image: string; location: string; info: string } | null>(null);
   const [isLoadingGlobe, setIsLoadingGlobe] = useState(false);
 

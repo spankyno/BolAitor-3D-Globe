@@ -1,9 +1,7 @@
 import LegalPageLayout from './LegalPageLayout';
 
-// NOTE: replace [tu-email-de-contacto] and [tu país/jurisdicción] with
-// your real details before publishing.
-const CONTACT_EMAIL = '[blog.cottage627@passinbox.com]';
-const JURISDICTION = '[España]';
+const CONTACT_EMAIL = 'blog.cottage627@passinbox.com';
+const JURISDICTION = 'España';
 
 export default function TermsOfServicePage() {
   return (

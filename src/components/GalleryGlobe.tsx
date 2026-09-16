@@ -2,6 +2,7 @@ import { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GLOBE_RADIUS } from '../data';
+import type { CollectionPhoto } from '../types/collection';
 import Globe from './Globe';
 
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -19,7 +20,7 @@ function CameraController({ targetZ }: { targetZ: React.MutableRefObject<number>
   return null;
 }
 
-export default function GalleryGlobe({ customPhotos, onSelect }: { customPhotos: string[], onSelect: (image: string, location: string, info: string) => void }) {
+export default function GalleryGlobe({ customPhotos, onSelect }: { customPhotos: CollectionPhoto[], onSelect: (image: string, location: string, info: string) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Interaction State Maps

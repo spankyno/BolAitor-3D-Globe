@@ -14,6 +14,7 @@ export const APP_FOLDER_NAME = 'BolAitor 3D Globe';
 export interface DrivePhoto {
   id: string;
   name: string;
+  description: string;
   url: string; // local object URL, safe to use as an <img>/texture src
 }
 
@@ -81,7 +82,7 @@ export async function uploadPhotoToDrive(
   const data = await res.json();
   // We already have the bytes locally — no need to re-download them.
   const url = URL.createObjectURL(file);
-  return { id: data.id, name: data.name, url };
+  return { id: data.id, name: data.name, description: '', url };
 }
 
 /**
@@ -94,16 +95,16 @@ export async function listDrivePhotos(accessToken: string, folderId: string): Pr
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType contains 'image/'`);
   const res = await driveFetch(
     accessToken,
-    `${DRIVE_FILES_API}?q=${q}&fields=files(id,name)&orderBy=name&spaces=drive&pageSize=200`
+    `${DRIVE_FILES_API}?q=${q}&fields=files(id,name,description)&orderBy=name&spaces=drive&pageSize=200`
   );
   const data = await res.json();
-  const files: { id: string; name: string }[] = data.files || [];
+  const files: { id: string; name: string; description?: string }[] = data.files || [];
 
   const results = await mapWithConcurrency(files, 6, async (f) => {
     try {
       const contentRes = await driveFetch(accessToken, `${DRIVE_FILES_API}/${f.id}?alt=media`);
       const blob = await contentRes.blob();
-      return { id: f.id, name: f.name, url: URL.createObjectURL(blob) } as DrivePhoto;
+      return { id: f.id, name: f.name, description: f.description || '', url: URL.createObjectURL(blob) } as DrivePhoto;
     } catch (e) {
       console.error('No se pudo descargar una foto de Drive:', f.name, e);
       return null;
@@ -111,6 +112,24 @@ export async function listDrivePhotos(accessToken: string, folderId: string): Pr
   });
 
   return results.filter((p): p is DrivePhoto => p !== null);
+}
+
+/**
+ * Updates a photo's title and/or description. The title is stored as the
+ * Drive file's own `name` (overwriting the original uploaded filename),
+ * and the description in Drive's native `description` field — no custom
+ * metadata scheme needed.
+ */
+export async function updatePhotoMetadata(
+  accessToken: string,
+  fileId: string,
+  updates: { name?: string; description?: string }
+): Promise<void> {
+  await driveFetch(accessToken, `${DRIVE_FILES_API}/${fileId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
 }
 
 export async function deleteDrivePhoto(accessToken: string, fileId: string): Promise<void> {
