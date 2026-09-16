@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Volume2, VolumeX, Check, Copy } from 'lucide-react';
+import { X, Volume2, VolumeX, Check, Copy, Download } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { motion } from 'motion/react';
 
@@ -17,6 +17,16 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const safeName = (data.location || 'foto').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const link = document.createElement('a');
+    link.href = data.image;
+    link.download = `${safeName || 'foto'}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const toggleSpeech = () => {
@@ -69,11 +79,19 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
           <img 
             src={data.image} 
             alt={data.location} 
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
+            className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-105" 
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 text-white pointer-events-none">
             <h2 className="text-2xl font-bold tracking-tight font-display">{data.location}</h2>
           </div>
+          <button
+            onClick={handleDownload}
+            className="absolute bottom-4 right-4 p-2.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 transition-colors z-20 shadow-md border border-gray-200/80 rounded-full flex items-center justify-center cursor-pointer"
+            aria-label="Descargar foto"
+            title="Descargar foto"
+          >
+            <Download className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Right Column: Content */}
