@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;700&display=swap');
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-display: "MuseoModerno", sans-serif;
@@ -13,4 +16,13 @@ html, body, #root {
   overflow: hidden;
   overscroll-behavior: none;
   background-color: #ffffff;
+}
+
+html.dark, html.dark body, html.dark #root {
+  background-color: #09090b;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }

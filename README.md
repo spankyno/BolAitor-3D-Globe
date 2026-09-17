@@ -269,7 +269,17 @@ npm run lint:functions
 - **Lucide React** (Iconografía limpia y moderna)
 - **Web Speech API** (Locución accesible de información turística en navegador)
 - **JSZip** (extracción de imágenes desde archivos ZIP en el navegador)
-- **Clerk** (`@clerk/clerk-react`, `@clerk/backend`) — registro, login (con Google) y gestión de sesión
+- **Clerk** (`@clerk/clerk-react`, `@clerk/backend`, `@clerk/themes`) — registro, login (con Google), gestión de sesión y tema oscuro sincronizado en su modal
 - **Cloudflare Pages Functions** (`functions/api/`) — piezas serverless para el token de Drive y el sistema de enlaces compartidos
 - **Cloudflare Workers KV** — almacén clave-valor usado para resolver los enlaces de "Compartir un globo"
 - **Google Drive API v3** (REST, llamada directamente desde el navegador o desde las funciones serverless, según el caso)
+- **@tailwindcss/typography** — estilos de lectura (`prose`) para la ficha de cada foto y las páginas legales
+
+---
+
+## 🎨 Interfaz
+
+- **Modo oscuro**: sigue el tema del sistema operativo por defecto; el botón ☀️/🌙 (esquina superior derecha) permite fijar preferencia manual, que se guarda en `localStorage`. Se aplica también al modal de login de Clerk.
+- **Arrastrar y soltar**: en la pantalla de un globo, se pueden soltar imágenes sueltas o un único `.zip` directamente sobre la zona de subida, además de usar los botones de siempre.
+- **Pantallas de carga tipo *skeleton***: al cargar la lista de globos o las fotos de un globo guardado en Drive, se muestran bloques de carga con la forma del contenido real en vez de un simple spinner.
+- **Tarjetas del globo con hover animado**: al pasar el cursor sobre una foto del globo 3D, esta se agranda ligeramente y se le enciende un contorno brillante, con una animación suave (sin coste extra de rendimiento relevante: solo escala + un `lineSegments` muy ligero por tarjeta).

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { useMemo, useRef, useState, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { CARD_WIDTH, CARD_HEIGHT, GLOBE_RADIUS } from '../data';
 import { DEFAULT_PHOTO_DESCRIPTION } from '../utils/photoCaption';
 
@@ -37,7 +38,9 @@ function getSharedPlaceholder(): THREE.Texture {
 }
 
 export default function Card({ index, position, scale = 1, customImage, customTitle, customDescription, onSelect, onHover, onHoverOut }: CardProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const outlineMaterialRef = useRef<THREE.LineBasicMaterial>(null);
+  const hoverProgress = useRef(0);
   const [hovered, setHovered] = useState(false);
 
   const cardName = customTitle?.trim() || `Foto ${index + 1}`;
@@ -116,46 +119,77 @@ export default function Card({ index, position, scale = 1, customImage, customTi
     return geo;
   }, [scale]);
 
-  // Dispose the plane geometry whenever it's replaced (scale changed) or
-  // the card unmounts.
+  // A crisp, cheap outline traced from the same curved geometry — lights
+  // up on hover instead of building a whole second textured mesh.
+  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry]);
+
+  // Dispose the plane/edge geometries whenever they're replaced (scale
+  // changed) or the card unmounts.
   useEffect(() => {
     return () => {
       geometry.dispose();
+      edgesGeometry.dispose();
     };
-  }, [geometry]);
+  }, [geometry, edgesGeometry]);
+
+  // Smoothly animate a hover "pop" (slight scale-up) and a glowing edge
+  // highlight, instead of snapping instantly on pointer over/out.
+  useFrame(() => {
+    const target = hovered ? 1 : 0;
+    hoverProgress.current = THREE.MathUtils.lerp(hoverProgress.current, target, 0.18);
+
+    if (groupRef.current) {
+      const s = 1 + hoverProgress.current * 0.1;
+      groupRef.current.scale.setScalar(s);
+    }
+    if (outlineMaterialRef.current) {
+      outlineMaterialRef.current.opacity = hoverProgress.current * 0.9;
+    }
+  });
 
   return (
-    <mesh 
-      position={position} 
-      quaternion={rotationQuaternion}
-      ref={meshRef} 
-      geometry={geometry} 
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(customImage, cardName, cardInfo);
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-        document.body.style.cursor = 'pointer';
-        if (onHover) {
-          onHover(cardName);
-        }
-      }}
-      onPointerOut={() => {
-        setHovered(false);
-        document.body.style.cursor = 'auto';
-        if (onHoverOut) {
-          onHoverOut();
-        }
-      }}
-    >
-      {/* DoubleSide allows the interior views of the cards to be seen when passing through */}
-      <meshBasicMaterial 
-        map={texture} 
-        side={THREE.DoubleSide} 
-        toneMapped={false} 
-      />
-    </mesh>
+    <group ref={groupRef} position={position} quaternion={rotationQuaternion}>
+      <mesh
+        geometry={geometry}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(customImage, cardName, cardInfo);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = 'pointer';
+          if (onHover) {
+            onHover(cardName);
+          }
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = 'auto';
+          if (onHoverOut) {
+            onHoverOut();
+          }
+        }}
+      >
+        {/* DoubleSide allows the interior views of the cards to be seen when passing through */}
+        <meshBasicMaterial
+          map={texture}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Glowing outline, faded in on hover */}
+      <lineSegments geometry={edgesGeometry} renderOrder={1}>
+        <lineBasicMaterial
+          ref={outlineMaterialRef}
+          color="#ffffff"
+          transparent
+          opacity={0}
+          depthTest={false}
+          toneMapped={false}
+        />
+      </lineSegments>
+    </group>
   );
 }

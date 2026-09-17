@@ -17,7 +17,7 @@ export default function LoadingOverlay({ onComplete }: { onComplete: () => void 
   }, [onComplete]);
 
   return (
-    <div className="absolute inset-0 z-40 bg-white flex items-center justify-center pointer-events-none w-full">
+    <div className="absolute inset-0 z-40 bg-white dark:bg-gray-950 flex items-center justify-center pointer-events-none w-full">
       <div className="text-center w-full px-4">
         <div className="h-8 relative flex items-center justify-center w-full">
           <AnimatePresence mode="popLayout">
@@ -28,7 +28,7 @@ export default function LoadingOverlay({ onComplete }: { onComplete: () => void 
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                 transition={{ duration: 0.3 }}
-                className="text-gray-600 font-mono text-xs tracking-widest uppercase absolute whitespace-nowrap text-center"
+                className="text-gray-600 dark:text-gray-400 font-mono text-xs tracking-widest uppercase absolute whitespace-nowrap text-center"
               >
                 {LOADING_TEXTS[index]}
               </motion.p>

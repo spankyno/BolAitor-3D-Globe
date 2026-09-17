@@ -7,6 +7,7 @@ import LoadingOverlay from './components/LoadingOverlay';
 import SharedGlobeViewer from './components/SharedGlobeViewer';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import TermsOfServicePage from './components/TermsOfServicePage';
+import ThemeToggle from './components/ThemeToggle';
 import type { CollectionPhoto } from './types/collection';
 
 // GalleryGlobe (and therefore three.js / @react-three/fiber / @react-three/drei)
@@ -31,16 +32,16 @@ export default function App() {
   // Public, read-only shared globe: /share/<token> — no login, no menu.
   if (SHARE_PATH_MATCH) {
     return (
-      <div className="w-full h-full relative bg-white overflow-hidden select-none">
+      <div className="w-full h-full relative bg-white dark:bg-gray-950 overflow-hidden select-none">
         <SharedGlobeViewer token={SHARE_PATH_MATCH[1]} />
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full relative bg-white overflow-hidden select-none">
+    <div className="w-full h-full relative bg-white dark:bg-gray-950 overflow-hidden select-none">
       {!customPhotos ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
+        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-950 z-50">
           <IntroScreen onStart={(photos) => {
             setCustomPhotos(photos);
             setIsLoadingGlobe(true);
@@ -52,7 +53,7 @@ export default function App() {
             {isLoadingGlobe && (
               <motion.div
                 key="loading-overlay"
-                className="absolute inset-0 z-40 bg-white"
+                className="absolute inset-0 z-40 bg-white dark:bg-gray-950"
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
               >
@@ -73,8 +74,8 @@ export default function App() {
           >
             <Suspense
               fallback={
-                <div className="w-full h-full flex items-center justify-center bg-white">
-                  <div className="flex items-center gap-2 text-gray-400 text-xs font-mono uppercase tracking-widest">
+                <div className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-950">
+                  <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-xs font-mono uppercase tracking-widest">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Cargando el globo…
                   </div>
@@ -106,17 +107,18 @@ export default function App() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="absolute bottom-6 left-0 right-0 flex flex-col sm:flex-row items-center justify-between px-8 z-30 pointer-events-none gap-2"
             >
-              <div className="text-[11px] text-gray-400 font-mono tracking-wider">
+              <div className="text-[11px] text-gray-400 dark:text-gray-500 font-mono tracking-wider">
                 DRAG TO ROTATE • SCROLL TO PENETRATE • CLICK TO EXPLORE
               </div>
 
-              <div className="flex items-center gap-4 pointer-events-auto">
+              <div className="flex items-center gap-2 pointer-events-auto">
                 <button 
                   onClick={() => setCustomPhotos(null)}
-                  className="text-[11px] font-mono tracking-widest uppercase text-gray-500 hover:text-black bg-white/80 hover:bg-white backdrop-blur-sm px-3.5 py-1.5 border border-gray-200 shadow-sm transition-all rounded-none cursor-pointer"
+                  className="text-[11px] font-mono tracking-widest uppercase text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white bg-white/80 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-800 backdrop-blur-sm px-3.5 py-1.5 border border-gray-200 dark:border-gray-700 shadow-sm transition-all rounded-none cursor-pointer"
                 >
                   Cambiar fotos
                 </button>
+                <ThemeToggle />
               </div>
             </motion.div>
           )}

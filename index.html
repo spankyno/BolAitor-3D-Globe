@@ -3,16 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="fK2gZcSYwHHPqDFWdIB5WD1eVONqa6kwIFqkRDRyX4g" />
     <title>BolAitor 3D Globe</title>
     <meta name="description" content="BolAitor 3D Globe: galería esférica interactiva en 3D construida con WebGL. Sube tus propias fotos (individualmente o en un ZIP) y explóralas en un globo interactivo con arrastre libre, inercia y zoom de penetración." />
     <meta property="og:title" content="BolAitor 3D Globe" />
     <meta property="og:description" content="An interactive 3D spherical gallery of images using WebGL. Features free drag-to-rotate interaction, momentum scrolling, and deep zoom camera penetration inside the sphere." />
-    <meta name="theme-color" content="#ffffff" />
-    <!-- Google Identity Services: used for "Sign in with Google" + obtaining
-         an OAuth access token scoped to Google Drive (drive.file), so users
-         can store their globe photos in their own Google Drive. -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="google-site-verification" content="fK2gZcSYwHHPqDFWdIB5WD1eVONqa6kwIFqkRDRyX4g" />
+    <script>
+      // Applied before first paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var stored = localStorage.getItem('bolaitor-theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = stored === 'dark' || (stored !== 'light' && prefersDark);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

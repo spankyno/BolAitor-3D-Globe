@@ -21,6 +21,8 @@ import CollectionsScreen from './CollectionsScreen';
 import ShareControl from './ShareControl';
 import LegalFooter from './LegalFooter';
 import PhotoCaptionEditor from './PhotoCaptionEditor';
+import ThemeToggle from './ThemeToggle';
+import Skeleton from './Skeleton';
 import { makeLocalCollectionId, type Collection, type CollectionPhoto } from '../types/collection';
 
 interface IntroScreenProps {
@@ -51,6 +53,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [driveError, setDriveError] = useState<string | null>(null);
 
@@ -229,9 +232,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
   // --- Photos within the active collection ---
 
-  const handleGalleryImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
+  const processImageFiles = async (files: File[]) => {
     if (files.length === 0 || !activeCollection) return;
     setGalleryLoading(true);
     setGalleryError(null);
@@ -257,10 +258,8 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
     }
   };
 
-  const handleGalleryZipSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !activeCollection) return;
+  const processZipFile = async (file: File) => {
+    if (!activeCollection) return;
     setGalleryLoading(true);
     setGalleryError(null);
     try {
@@ -282,6 +281,58 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
       setGalleryError('No se pudo leer el archivo ZIP. Comprueba que no esté dañado.');
     } finally {
       setGalleryLoading(false);
+    }
+  };
+
+  const handleGalleryImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    await processImageFiles(files);
+  };
+
+  const handleGalleryZipSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) await processZipFile(file);
+  };
+
+  const isZipFile = (file: File) =>
+    file.name.toLowerCase().endsWith('.zip') ||
+    file.type === 'application/zip' ||
+    file.type === 'application/x-zip-compressed';
+
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragCounter.current += 1;
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setIsDraggingOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDropFiles = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDraggingOver(false);
+    if (!activeCollection) return;
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+
+    if (files.length === 1 && isZipFile(files[0])) {
+      await processZipFile(files[0]);
+    } else {
+      const imageFiles = files.filter((f) => f.type.startsWith('image/') || !isZipFile(f));
+      await processImageFiles(imageFiles);
     }
   };
 
@@ -378,17 +429,19 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full max-w-lg mx-auto p-6 font-sans text-center overflow-y-auto">
+      <ThemeToggle className="fixed top-4 right-4 z-30" />
+
       <div className="flex-grow flex-shrink-0 flex flex-col items-center justify-center w-full py-8">
 
         {/* Title & Subtitle */}
         <div className={`mb-6 ${mode !== 'menu' ? 'hidden md:block' : ''}`}>
-          <h1 className="text-[40px] sm:text-[48px] font-bold font-display tracking-tight text-gray-900 leading-none mb-2">
+          <h1 className="text-[40px] sm:text-[48px] font-bold font-display tracking-tight text-gray-900 dark:text-gray-50 leading-none mb-2">
             BolAitor
           </h1>
-          <p className="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-gray-400 mb-3">
+          <p className="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-gray-400 dark:text-gray-500 mb-3">
             3D Globe
           </p>
-          <p className="text-sm sm:text-base text-gray-500 lowercase tracking-wide max-w-sm mx-auto">
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 lowercase tracking-wide max-w-sm mx-auto">
             galería esférica interactiva en 3d · sube tus propias fotos
           </p>
         </div>
@@ -403,24 +456,24 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             <button
               id="add-gallery-photos-btn"
               onClick={goToCollections}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 text-white bg-gray-900 hover:bg-black transition-colors uppercase tracking-widest text-xs font-semibold rounded-none shadow-sm cursor-pointer"
+              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 dark:border-gray-100 text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 hover:bg-black dark:hover:bg-white transition-colors uppercase tracking-widest text-xs font-semibold rounded-none shadow-sm cursor-pointer"
             >
               <Images className="w-4 h-4" />
               Mis globos
               {collections.length > 0 && (
-                <span className="ml-1 text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{collections.length}</span>
+                <span className="ml-1 text-[10px] bg-white/20 dark:bg-gray-900/10 px-1.5 py-0.5 rounded-full">{collections.length}</span>
               )}
             </button>
 
             {/* Info footer */}
-            <p className="text-[11px] text-gray-400 mt-4 tracking-wider uppercase font-mono">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-4 tracking-wider uppercase font-mono">
               WebGL 3D
             </p>
 
             {/* Registro / login centralizado con Clerk (incluye Google) */}
             <SignInPrompt variant="menu" />
             {isSignedIn && !hasGoogleAccount && <ConnectDriveButton />}
-            {driveError && <p className="text-[11px] text-red-500 leading-relaxed">{driveError}</p>}
+            {driveError && <p className="text-[11px] text-red-500 dark:text-red-400 leading-relaxed">{driveError}</p>}
           </div>
         )}
 
@@ -445,7 +498,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             <div className="w-full text-left">
               <button
                 onClick={goToCollections}
-                className="flex items-center gap-1 text-[11px] uppercase tracking-widest text-gray-400 hover:text-gray-700 cursor-pointer mb-2"
+                className="flex items-center gap-1 text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer mb-2"
               >
                 <ArrowLeft className="w-3 h-3" />
                 Mis globos
@@ -458,32 +511,32 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && confirmRenameActive()}
-                    className="text-lg font-bold text-gray-900 border-b border-gray-400 focus:outline-none flex-1 min-w-0"
+                    className="text-lg font-bold text-gray-900 dark:text-gray-50 bg-transparent border-b border-gray-400 dark:border-gray-600 focus:outline-none flex-1 min-w-0"
                   />
-                  <button onClick={confirmRenameActive} className="text-emerald-600 hover:text-emerald-800 cursor-pointer" aria-label="Guardar">
+                  <button onClick={confirmRenameActive} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 cursor-pointer" aria-label="Guardar">
                     <Check className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-1 flex items-center gap-2">
                   {activeCollection.name}
-                  <button onClick={startRenameActive} className="text-gray-300 hover:text-gray-700 cursor-pointer" aria-label="Renombrar globo">
+                  <button onClick={startRenameActive} className="text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer" aria-label="Renombrar globo">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </h2>
               )}
 
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Sube imágenes sueltas o un único archivo <strong>.zip</strong> con varias fotos.
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Sube imágenes sueltas o un único archivo <strong>.zip</strong> con varias fotos, o arrástralas aquí abajo.
                 Se mostrarán como tarjetas en este globo 3D.
               </p>
               {isSignedIn && activeCollection.driveFolderId ? (
-                <p className="text-[11px] text-emerald-600 flex items-center gap-1 mt-2">
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-2">
                   <Cloud className="w-3.5 h-3.5" />
                   Se guardan en tu Google Drive {userEmail ? `(${userEmail})` : ''}
                 </p>
               ) : (
-                <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-2">
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-2">
                   <CloudOff className="w-3.5 h-3.5" />
                   Solo en este navegador — inicia sesión para guardarlas en tu Drive
                 </p>
@@ -491,31 +544,47 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             </div>
 
             {restoringCollection && (
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Cargando las fotos de este globo desde Google Drive...
+              <div className="w-full grid grid-cols-4 gap-2 p-1" aria-label="Cargando fotos">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square" />
+                ))}
               </div>
             )}
 
             {isSignedIn && !hasGoogleAccount && <ConnectDriveButton />}
 
-            <div className="flex gap-2.5 w-full">
-              <button
-                onClick={() => imagesInputRef.current?.click()}
-                disabled={galleryLoading}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 border border-gray-900 text-gray-900 bg-white hover:bg-gray-50 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
-              >
-                <Images className="w-4 h-4" />
-                Imágenes
-              </button>
-              <button
-                onClick={() => zipInputRef.current?.click()}
-                disabled={galleryLoading}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-3 border border-gray-900 text-gray-900 bg-white hover:bg-gray-50 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
-              >
-                <FileArchive className="w-4 h-4" />
-                Archivo ZIP
-              </button>
+            <div
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDropFiles}
+              className={`w-full flex flex-col gap-2.5 p-3 border-2 border-dashed rounded-lg transition-colors ${
+                isDraggingOver
+                  ? 'border-gray-900 dark:border-gray-100 bg-gray-50 dark:bg-gray-900'
+                  : 'border-gray-200 dark:border-gray-800'
+              }`}
+            >
+              <div className="flex gap-2.5 w-full">
+                <button
+                  onClick={() => imagesInputRef.current?.click()}
+                  disabled={galleryLoading}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-3 border border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100 bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
+                >
+                  <Images className="w-4 h-4" />
+                  Imágenes
+                </button>
+                <button
+                  onClick={() => zipInputRef.current?.click()}
+                  disabled={galleryLoading}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-3 border border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100 bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
+                >
+                  <FileArchive className="w-4 h-4" />
+                  Archivo ZIP
+                </button>
+              </div>
+              <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600 font-mono">
+                {isDraggingOver ? 'Suelta para subir' : 'o arrastra tus fotos / un .zip aquí'}
+              </p>
             </div>
 
             <input
@@ -535,23 +604,23 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
             />
 
             {galleryLoading && (
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Procesando imágenes...
               </div>
             )}
             {uploadingCount > 0 && (
-              <div className="flex items-center gap-2 text-xs text-emerald-600">
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Guardando {uploadingCount} foto{uploadingCount === 1 ? '' : 's'} en Google Drive...
               </div>
             )}
 
             {galleryError && (
-              <p className="text-xs text-red-500 leading-relaxed">{galleryError}</p>
+              <p className="text-xs text-red-500 dark:text-red-400 leading-relaxed">{galleryError}</p>
             )}
             {driveError && (
-              <p className="text-xs text-amber-600 leading-relaxed">{driveError}</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">{driveError}</p>
             )}
 
             {activeCollection.photos.length > 0 && (
@@ -559,11 +628,11 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
                 <div className="w-full grid grid-cols-4 gap-2 max-h-52 overflow-y-auto p-1">
                   {activeCollection.photos.map((photo, i) => (
                     <div key={photo.url + i} className="relative aspect-square group">
-                      <img src={photo.url} alt={photo.title} loading="lazy" className="w-full h-full object-cover border border-gray-200" />
+                      <img src={photo.url} alt={photo.title} loading="lazy" className="w-full h-full object-cover border border-gray-200 dark:border-gray-700" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <button
                         onClick={() => setEditingPhotoIndex(i)}
-                        className="absolute bottom-1 left-1 bg-white/90 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute bottom-1 left-1 bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-200 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         aria-label="Editar título y descripción"
                         title="Editar título y descripción"
                       >
@@ -571,7 +640,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
                       </button>
                       <button
                         onClick={() => removePhotoFromActiveCollection(i)}
-                        className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute -top-1.5 -right-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         aria-label="Quitar foto"
                       >
                         <X className="w-3 h-3" />
@@ -579,7 +648,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-mono">
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-mono">
                   {activeCollection.photos.length} foto{activeCollection.photos.length === 1 ? '' : 's'} cargada{activeCollection.photos.length === 1 ? '' : 's'}
                 </p>
               </>
@@ -589,13 +658,13 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
               id="start-with-gallery-btn"
               onClick={startWithActiveCollection}
               disabled={activeCollection.photos.length === 0}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 text-white bg-gray-900 hover:bg-black transition-colors uppercase tracking-widest text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+              className="flex items-center justify-center gap-3 w-full py-4 px-6 border border-gray-900 dark:border-gray-100 text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 hover:bg-black dark:hover:bg-white transition-colors uppercase tracking-widest text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-1"
             >
               Ver este globo
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <div className="w-full border-t border-gray-100 pt-3 mt-1">
+            <div className="w-full border-t border-gray-100 dark:border-gray-800 pt-3 mt-1">
               <ShareControl folderId={activeCollection.driveFolderId} isSignedIn={isSignedIn} />
             </div>
 

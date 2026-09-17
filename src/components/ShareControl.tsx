@@ -32,7 +32,7 @@ export default function ShareControl({ folderId, isSignedIn }: ShareControlProps
 
   if (!isSignedIn || !folderId) {
     return (
-      <p className="text-[11px] text-gray-400 leading-relaxed">
+      <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">
         Inicia sesión y guarda este globo en Drive para poder compartirlo con un enlace público.
       </p>
     );
@@ -40,7 +40,7 @@ export default function ShareControl({ folderId, isSignedIn }: ShareControlProps
 
   if (checking) {
     return (
-      <div className="flex items-center gap-2 text-xs text-gray-400">
+      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         Comprobando si ya está compartido…
       </div>
@@ -105,11 +105,11 @@ export default function ShareControl({ folderId, isSignedIn }: ShareControlProps
             readOnly
             value={shareUrl}
             onFocus={(e) => e.target.select()}
-            className="flex-1 min-w-0 px-2.5 py-2 text-xs border border-gray-300 text-gray-600 bg-gray-50 truncate"
+            className="flex-1 min-w-0 px-2.5 py-2 text-xs border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 truncate"
           />
           <button
             onClick={handleCopy}
-            className="flex items-center justify-center px-2.5 py-2 border border-gray-900 bg-gray-900 text-white hover:bg-black transition-colors cursor-pointer shrink-0"
+            className="flex items-center justify-center px-2.5 py-2 border border-gray-900 dark:border-gray-100 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-black dark:hover:bg-white transition-colors cursor-pointer shrink-0"
             aria-label="Copiar enlace"
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -118,12 +118,12 @@ export default function ShareControl({ folderId, isSignedIn }: ShareControlProps
         <button
           onClick={handleRevoke}
           disabled={loading}
-          className="text-[11px] uppercase tracking-widest text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1 disabled:opacity-50 self-start"
+          className="text-[11px] uppercase tracking-widest text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer flex items-center gap-1 disabled:opacity-50 self-start"
         >
           {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
           Dejar de compartir
         </button>
-        {error && <p className="text-[11px] text-red-500">{error}</p>}
+        {error && <p className="text-[11px] text-red-500 dark:text-red-400">{error}</p>}
       </div>
     );
   }
@@ -133,12 +133,12 @@ export default function ShareControl({ folderId, isSignedIn }: ShareControlProps
       <button
         onClick={handleShare}
         disabled={loading}
-        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
+        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors uppercase tracking-wider text-[11px] font-medium cursor-pointer disabled:opacity-50"
       >
         {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
         Compartir este globo
       </button>
-      {error && <p className="text-[11px] text-red-500">{error}</p>}
+      {error && <p className="text-[11px] text-red-500 dark:text-red-400">{error}</p>}
     </div>
   );
 }

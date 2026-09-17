@@ -62,13 +62,13 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col md:flex-row w-full max-w-5xl max-h-[85vh] relative z-10 overflow-hidden rounded-xl border border-gray-100"
+        className="bg-white dark:bg-gray-900 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col md:flex-row w-full max-w-5xl max-h-[85vh] relative z-10 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800"
       >
         {/* Close Button */}
         <button 
           id="close-location-details"
           onClick={onClose} 
-          className="absolute top-4 right-4 p-2.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 transition-colors z-20 shadow-md border border-gray-200/80 rounded-full flex items-center justify-center"
+          className="absolute top-4 right-4 p-2.5 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-colors z-20 shadow-md border border-gray-200/80 dark:border-gray-700/80 rounded-full flex items-center justify-center"
           aria-label="Close details"
         >
           <X className="w-5 h-5" />
@@ -86,7 +86,7 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
           </div>
           <button
             onClick={handleDownload}
-            className="absolute bottom-4 right-4 p-2.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 transition-colors z-20 shadow-md border border-gray-200/80 rounded-full flex items-center justify-center cursor-pointer"
+            className="absolute bottom-4 right-4 p-2.5 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-colors z-20 shadow-md border border-gray-200/80 dark:border-gray-700/80 rounded-full flex items-center justify-center cursor-pointer"
             aria-label="Descargar foto"
             title="Descargar foto"
           >
@@ -95,17 +95,17 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
         </div>
 
         {/* Right Column: Content */}
-        <div className="w-full h-full md:w-[55%] flex flex-col p-6 sm:p-8 md:p-10 overflow-y-auto bg-white">
+        <div className="w-full h-full md:w-[55%] flex flex-col p-6 sm:p-8 md:p-10 overflow-y-auto bg-white dark:bg-gray-900">
           {/* Header actions */}
-          <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
             <div className="ml-auto flex items-center gap-1.5">
               {'speechSynthesis' in window && (
                 <button
                   onClick={toggleSpeech}
                   className={`p-2 rounded-md border text-xs flex items-center gap-1 transition-colors ${
                     isSpeaking 
-                      ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' 
+                      : 'bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                   title={isSpeaking ? "Stop narration" : "Listen to description"}
                 >
@@ -115,28 +115,28 @@ export default function LocationDetailsScreen({ data, onClose }: LocationDetails
               )}
               <button
                 onClick={handleCopy}
-                className="p-2 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 text-xs flex items-center gap-1 transition-colors"
+                className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs flex items-center gap-1 transition-colors"
                 title="Copy location info"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
           </div>
 
           {/* Body Content */}
-          <div className="text-gray-700 text-sm sm:text-base leading-relaxed space-y-4 font-sans">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 font-display">
+          <div className="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed space-y-4 font-sans">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50 font-display">
               {data.location}
             </h1>
             
-            <div className="prose prose-neutral max-w-none text-gray-600 text-sm sm:text-base leading-relaxed space-y-3">
+            <div className="prose prose-neutral dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 text-sm sm:text-base leading-relaxed space-y-3">
               <Markdown>{data.info}</Markdown>
             </div>
           </div>
 
           {/* Footer note */}
-          <div className="mt-8 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+          <div className="mt-8 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
             <span>BolAitor 3D Globe</span>
           </div>
         </div>
