@@ -1,15 +1,75 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BolAitor 3D Globe</title>
-    <meta name="description" content="BolAitor 3D Globe: galería esférica interactiva en 3D construida con WebGL. Sube tus propias fotos (individualmente o en un ZIP) y explóralas en un globo interactivo con arrastre libre, inercia y zoom de penetración." />
-    <meta property="og:title" content="BolAitor 3D Globe" />
-    <meta property="og:description" content="An interactive 3D spherical gallery of images using WebGL. Features free drag-to-rotate interaction, momentum scrolling, and deep zoom camera penetration inside the sphere." />
+
+    <title>BolAitor 3D Globe: Galería de Fotos en un Globo 3D Interactivo</title>
+    <meta name="description" content="Crea tu propio globo 3D con tus fotos favoritas: sube imágenes o un ZIP, explora una galería esférica interactiva en el navegador y compártela con un enlace único y gratis." />
+    <meta name="author" content="Aitor Sánchez Gutiérrez" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://bolaitor-3d-globe.pages.dev/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BolAitor 3D Globe" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:url" content="https://bolaitor-3d-globe.pages.dev/" />
+    <meta property="og:title" content="BolAitor 3D Globe: Galería de Fotos en un Globo 3D Interactivo" />
+    <meta property="og:description" content="Crea tu propio globo 3D con tus fotos favoritas: sube imágenes o un ZIP, explora una galería esférica interactiva en el navegador y compártela con un enlace único y gratis." />
+    <meta property="og:image" content="https://bolaitor-3d-globe.pages.dev/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BolAitor 3D Globe: Galería de Fotos en un Globo 3D Interactivo" />
+    <meta name="twitter:description" content="Crea tu propio globo 3D con tus fotos favoritas: sube imágenes o un ZIP, explora una galería esférica interactiva en el navegador y compártela con un enlace único y gratis." />
+    <meta name="twitter:image" content="https://bolaitor-3d-globe.pages.dev/og-image.png" />
+
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
     <meta name="google-site-verification" content="fK2gZcSYwHHPqDFWdIB5WD1eVONqa6kwIFqkRDRyX4g" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "BolAitor 3D Globe",
+        "url": "https://bolaitor-3d-globe.pages.dev/",
+        "description": "Crea tu propio globo 3D con tus fotos favoritas: sube imágenes o un ZIP, explora una galería esférica interactiva en el navegador y compártela con un enlace único y gratis.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any (navegador web)",
+        "image": "https://bolaitor-3d-globe.pages.dev/og-image.png",
+        "inLanguage": "es",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Aitor Sánchez Gutiérrez",
+          "url": "https://aitorsanchez.pages.dev",
+          "sameAs": ["https://aitorhub.vercel.app"]
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Aitor Sánchez Gutiérrez",
+          "url": "https://aitorsanchez.pages.dev"
+        },
+        "publisher": {
+          "@type": "Person",
+          "name": "Aitor Sánchez Gutiérrez",
+          "url": "https://aitorsanchez.pages.dev"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "url": "https://aitorsanchez.pages.dev/contacto",
+          "contactType": "customer support"
+        }
+      }
+    </script>
+
     <script>
       // Applied before first paint to avoid a flash of the wrong theme.
       (function () {
@@ -25,5 +85,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Usage analytics for the app author's own dashboard -->
+    <script
+      src="https://aitors-hub-dashboard.asanchezgu.workers.dev/tracker.js"
+      data-app="bolaitor-3d-globe"
+      data-key="ak_0a01491b65ce42429118209b0319b8b2"
+      async
+    ></script>
   </body>
 </html>
