@@ -19,7 +19,7 @@ import { useDriveAuth } from '../context/DriveAuthContext';
 import { AccountPill, ConnectDriveButton, SignInPrompt } from './ClerkAuth';
 import CollectionsScreen from './CollectionsScreen';
 import ShareControl from './ShareControl';
-import LegalFooter from './LegalFooter';
+import SiteFooter from './SiteFooter';
 import PhotoCaptionEditor from './PhotoCaptionEditor';
 import ThemeToggle from './ThemeToggle';
 import Skeleton from './Skeleton';
@@ -684,7 +684,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
         />
       )}
 
-      <LegalFooter />
+      <SiteFooter />
 
     </div>
   );
